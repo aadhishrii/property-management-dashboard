@@ -103,5 +103,19 @@ if (existing.length > 0 && !dto.confirmDuplicate) {
   })
 }
 
+async delete(id: string) {
+  const property = await this.prisma.property.findUnique({
+    where: { id },
+  })
+
+  if (!property) {
+    throw new NotFoundException(`Property ${id} not found`)
+  }
+
+  // Cascade delete removes buildings and units automatically
+  await this.prisma.property.delete({ where: { id } })
+
+  return { deleted: true }
+}
 
 }

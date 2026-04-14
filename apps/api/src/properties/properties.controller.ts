@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -23,6 +24,11 @@ export class PropertiesController {
   findOne(@Param('id') id: string) {
     return this.propertiesService.findOne(id)
   }
+
+  @Delete(':id')
+delete(@Param('id') id: string) {
+  return this.propertiesService.delete(id)
+}
 
   // ValidationPipe runs class-validator against CreatePropertyDto
   // before this method is called. If name is missing or type is wrong,

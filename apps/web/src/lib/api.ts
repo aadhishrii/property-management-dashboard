@@ -81,6 +81,10 @@ export async function createProperty(payload: {
   return data
 }
 
+export async function deleteProperty(id: string): Promise<void> {
+  await api.delete(`/properties/${id}`)
+}
+
 export async function upsertBuildings(
   propertyId: string,
   buildings: Array<{
