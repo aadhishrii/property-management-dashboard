@@ -77,7 +77,7 @@ type WizardAction =
 // Reducer
 // ─────────────────────────────────────────────────────────
 
-function wizardReducer(state: WizardState, action: WizardAction): WizardState {
+export function wizardReducer(state: WizardState, action: WizardAction): WizardState {
   switch (action.type) {
     case 'NEXT_STEP':
       return { ...state, step: Math.min(state.step + 1, 3) as 1 | 2 | 3 }
@@ -101,37 +101,43 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
       return { ...state, units: action.data }
 
     case 'PREFILL_FROM_AI': {
-      const { data } = action
+  const { data } = action
 
-      const buildings: BuildingFormData[] =
-        data.buildings.length > 0 ? data.buildings : state.buildings
+  const buildings: BuildingFormData[] =
+    data.buildings.length > 0
+      ? data.buildings
+      : state.buildings
 
-      const units: UnitFormData[] =
-        data.units.length > 0
-          ? data.units.map((u, i) => ({
-              id:               `ai-${i}`,
-              unitNumber:       u.unitNumber ?? '',
-              unitType:         u.unitType ?? 'APARTMENT',
-              buildingId:       '',
-              floor:            u.floor ?? '',
-              entrance:         u.entrance ?? '',
-              sizeSqm:          u.sizeSqm ?? '',
-              coOwnershipShare: u.coOwnershipShare ?? '',
-              constructionYear: u.constructionYear ?? '',
-              rooms:            u.rooms ?? '',
-            }))
-          : state.units
+  const units: UnitFormData[] =
+    data.units.length > 0
+      ? data.units.map((u, i) => ({
+          id:               `ai-${i}`,
+          unitNumber:       u.unitNumber ?? '',
+          unitType:         u.unitType ?? 'APARTMENT',
+          buildingId:       '',
+          floor:            u.floor ?? '',
+          entrance:         u.entrance ?? '',
+          sizeSqm:          u.sizeSqm ?? '',
+          // AI returns fractions (0.11) but the table shows per-mille (110.0)
+          // so we multiply by 1000 here to match what the user expects to see
+          coOwnershipShare: u.coOwnershipShare != null
+            ? Math.round(u.coOwnershipShare * 1000 * 10) / 10
+            : '',
+          constructionYear: u.constructionYear ?? '',
+          rooms:            u.rooms ?? '',
+        }))
+      : state.units
 
-      return {
-        ...state,
-        buildings,
-        units,
-        aiPrefilled: data.buildings.length > 0 || data.units.length > 0,
-        generalInfo: state.generalInfo && data.propertyName
-          ? { ...state.generalInfo, name: data.propertyName }
-          : state.generalInfo,
-      }
-    }
+  return {
+    ...state,
+    buildings,
+    units,
+    aiPrefilled: data.buildings.length > 0 || data.units.length > 0,
+    generalInfo: state.generalInfo && data.propertyName
+      ? { ...state.generalInfo, name: data.propertyName }
+      : state.generalInfo,
+  }
+}
 
     case 'RESET':
       return initialState

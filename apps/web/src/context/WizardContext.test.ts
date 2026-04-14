@@ -1,0 +1,588 @@
+import { wizardReducer, makeEmptyUnit } from './WizardContext'
+import type { BuildingFormData } from './WizardContext'
+
+// wizardReducer is a pure function — state + action → new state.
+// No React rendering, no HTTP, no database. Pure input/output testing.
+// This is the easiest and most valuable kind of test to write because
+// the wizard state is the backbone of the entire creation flow.
+
+describe('wizardReducer', () => {
+
+  const baseState = {
+    step:           1 as const,
+    propertyId:     null,
+    savedBuildings: [],
+    generalInfo:    null,
+    buildings:      [{ street: '', houseNumber: '', postalCode: '', city: '' }],
+    units:          [makeEmptyUnit()],
+    aiPrefilled:    false,
+  }
+
+  // ── NEXT_STEP ───────────────────────────────────────────
+
+  describe('NEXT_STEP', () => {
+    it('advances from step 1 to 2', () => {
+      const result = wizardReducer(baseState, { type: 'NEXT_STEP' })
+      expect(result.step).toBe(2)
+    })
+
+    it('advances from step 2 to 3', () => {
+      const state  = { ...baseState, step: 2 as const }
+      const result = wizardReducer(state, { type: 'NEXT_STEP' })
+      expect(result.step).toBe(3)
+    })
+
+    it('does not advance past step 3', () => {
+      const state  = { ...baseState, step: 3 as const }
+      const result = wizardReducer(state, { type: 'NEXT_STEP' })
+      expect(result.step).toBe(3)
+    })
+
+    it('does not clear propertyId when advancing', () => {
+      const state  = { ...baseState, propertyId: 'abc-123' }
+      const result = wizardReducer(state, { type: 'NEXT_STEP' })
+      expect(result.propertyId).toBe('abc-123')
+    })
+
+    it('does not clear aiPrefilled when advancing', () => {
+      const state  = { ...baseState, aiPrefilled: true }
+      const result = wizardReducer(state, { type: 'NEXT_STEP' })
+      expect(result.aiPrefilled).toBe(true)
+    })
+
+    it('does not clear buildings when advancing', () => {
+      const state = {
+        ...baseState,
+        buildings: [{ street: 'Musterstraße', houseNumber: '12', postalCode: '10115', city: 'Berlin' }],
+      }
+      const result = wizardReducer(state, { type: 'NEXT_STEP' })
+      expect(result.buildings[0].street).toBe('Musterstraße')
+    })
+  })
+
+  // ── PREV_STEP ───────────────────────────────────────────
+
+  describe('PREV_STEP', () => {
+    it('goes back from step 2 to 1', () => {
+      const state  = { ...baseState, step: 2 as const }
+      const result = wizardReducer(state, { type: 'PREV_STEP' })
+      expect(result.step).toBe(1)
+    })
+
+    it('goes back from step 3 to 2', () => {
+      const state  = { ...baseState, step: 3 as const }
+      const result = wizardReducer(state, { type: 'PREV_STEP' })
+      expect(result.step).toBe(2)
+    })
+
+    it('does not go below step 1', () => {
+      const result = wizardReducer(baseState, { type: 'PREV_STEP' })
+      expect(result.step).toBe(1)
+    })
+
+    it('preserves aiPrefilled when going back', () => {
+      const state  = { ...baseState, step: 2 as const, aiPrefilled: true }
+      const result = wizardReducer(state, { type: 'PREV_STEP' })
+      expect(result.aiPrefilled).toBe(true)
+    })
+
+    it('preserves generalInfo when going back', () => {
+      const state = {
+        ...baseState,
+        step:        2 as const,
+        generalInfo: { name: 'Test', type: 'WEG' as const, managerId: 'm-1', accountantId: 'a-1' },
+      }
+      const result = wizardReducer(state, { type: 'PREV_STEP' })
+      expect(result.generalInfo?.name).toBe('Test')
+    })
+  })
+
+  // ── SET_PROPERTY_ID ─────────────────────────────────────
+
+  describe('SET_PROPERTY_ID', () => {
+    it('stores the property id returned from backend', () => {
+      const result = wizardReducer(baseState, {
+        type:       'SET_PROPERTY_ID',
+        propertyId: 'fa1c81c8-56bb-4944-9e72-6b025a721d9d',
+      })
+      expect(result.propertyId).toBe('fa1c81c8-56bb-4944-9e72-6b025a721d9d')
+    })
+
+    it('does not change the current step', () => {
+      const result = wizardReducer(baseState, {
+        type:       'SET_PROPERTY_ID',
+        propertyId: 'abc-123',
+      })
+      expect(result.step).toBe(1)
+    })
+
+    it('does not affect other state', () => {
+      const result = wizardReducer(baseState, {
+        type:       'SET_PROPERTY_ID',
+        propertyId: 'abc-123',
+      })
+      expect(result.aiPrefilled).toBe(false)
+      expect(result.generalInfo).toBeNull()
+    })
+  })
+
+  // ── SET_SAVED_BUILDINGS ─────────────────────────────────
+
+  describe('SET_SAVED_BUILDINGS', () => {
+    it('stores real building records from backend', () => {
+      const buildings = [
+        { id: 'db-id-1', propertyId: 'p-1', street: 'Musterstraße',
+          houseNumber: '12', postalCode: '10115', city: 'Berlin' },
+      ]
+      const result = wizardReducer(baseState, {
+        type:      'SET_SAVED_BUILDINGS',
+        buildings,
+      })
+      expect(result.savedBuildings).toHaveLength(1)
+      expect(result.savedBuildings[0].id).toBe('db-id-1')
+    })
+
+    it('stores multiple buildings', () => {
+      const buildings = [
+        { id: 'b-1', propertyId: 'p-1', street: 'Am Fiktivpark',
+          houseNumber: '12', postalCode: '10557', city: 'Berlin' },
+        { id: 'b-2', propertyId: 'p-1', street: 'Urbanstraße',
+          houseNumber: '88', postalCode: '10557', city: 'Berlin' },
+      ]
+      const result = wizardReducer(baseState, {
+        type:      'SET_SAVED_BUILDINGS',
+        buildings,
+      })
+      expect(result.savedBuildings).toHaveLength(2)
+    })
+
+    it('replaces previously saved buildings', () => {
+      const state = {
+        ...baseState,
+        savedBuildings: [
+          { id: 'old-id', propertyId: 'p-1', street: 'Old Street',
+            houseNumber: '1', postalCode: '10000', city: 'Berlin' },
+        ],
+      }
+      const result = wizardReducer(state, {
+        type:      'SET_SAVED_BUILDINGS',
+        buildings: [
+          { id: 'new-id', propertyId: 'p-1', street: 'New Street',
+            houseNumber: '2', postalCode: '10001', city: 'Berlin' },
+        ],
+      })
+      expect(result.savedBuildings).toHaveLength(1)
+      expect(result.savedBuildings[0].id).toBe('new-id')
+    })
+  })
+
+  // ── SET_GENERAL_INFO ────────────────────────────────────
+
+  describe('SET_GENERAL_INFO', () => {
+    it('stores all general info fields', () => {
+      const data = {
+        name:         'Parkview Residences Berlin',
+        type:         'WEG' as const,
+        managerId:    'mgr-id-1',
+        accountantId: 'acc-id-1',
+      }
+      const result = wizardReducer(baseState, { type: 'SET_GENERAL_INFO', data })
+      expect(result.generalInfo).toEqual(data)
+    })
+
+    it('stores MV type correctly', () => {
+      const data = {
+        name:         'Miethaus Berlin',
+        type:         'MV' as const,
+        managerId:    'mgr-id-1',
+        accountantId: 'acc-id-1',
+      }
+      const result = wizardReducer(baseState, { type: 'SET_GENERAL_INFO', data })
+      expect(result.generalInfo?.type).toBe('MV')
+    })
+  })
+
+  // ── SET_BUILDINGS ───────────────────────────────────────
+
+  describe('SET_BUILDINGS', () => {
+    it('replaces building form data', () => {
+      const buildings: BuildingFormData[] = [
+        { street: 'Musterstraße', houseNumber: '12', postalCode: '10115', city: 'Berlin' },
+      ]
+      const result = wizardReducer(baseState, { type: 'SET_BUILDINGS', data: buildings })
+      expect(result.buildings).toHaveLength(1)
+      expect(result.buildings[0].street).toBe('Musterstraße')
+    })
+
+    it('can store multiple buildings', () => {
+      const buildings: BuildingFormData[] = [
+        { street: 'Am Fiktivpark', houseNumber: '12', postalCode: '10557', city: 'Berlin' },
+        { street: 'Urbanstraße',   houseNumber: '88', postalCode: '10557', city: 'Berlin' },
+      ]
+      const result = wizardReducer(baseState, { type: 'SET_BUILDINGS', data: buildings })
+      expect(result.buildings).toHaveLength(2)
+    })
+  })
+
+  // ── SET_UNITS ───────────────────────────────────────────
+
+  describe('SET_UNITS', () => {
+    it('replaces unit form data', () => {
+      const unit    = makeEmptyUnit()
+      unit.unitNumber = 'W-01'
+      const result = wizardReducer(baseState, { type: 'SET_UNITS', data: [unit] })
+      expect(result.units[0].unitNumber).toBe('W-01')
+    })
+
+    it('can store many units', () => {
+      const units = Array.from({ length: 14 }, (_, i) => {
+        const u      = makeEmptyUnit()
+        u.unitNumber = String(i + 1).padStart(2, '0')
+        return u
+      })
+      const result = wizardReducer(baseState, { type: 'SET_UNITS', data: units })
+      expect(result.units).toHaveLength(14)
+    })
+  })
+
+  // ── PREFILL_FROM_AI ─────────────────────────────────────
+
+  describe('PREFILL_FROM_AI', () => {
+
+    // Buildings
+    it('populates buildings from extraction', () => {
+      const result = wizardReducer(baseState, {
+        type: 'PREFILL_FROM_AI',
+        data: {
+          propertyName: 'Parkview',
+          buildings: [{
+            street: 'Am Fiktivpark', houseNumber: '12',
+            postalCode: '10557', city: 'Berlin',
+          }],
+          units: [],
+        },
+      })
+      expect(result.buildings).toHaveLength(1)
+      expect(result.buildings[0].street).toBe('Am Fiktivpark')
+    })
+
+    it('keeps existing buildings when extraction returns empty', () => {
+      const state = {
+        ...baseState,
+        buildings: [{ street: 'Existing', houseNumber: '1', postalCode: '10115', city: 'Berlin' }],
+      }
+      const result = wizardReducer(state, {
+        type: 'PREFILL_FROM_AI',
+        data: { propertyName: null, buildings: [], units: [] },
+      })
+      expect(result.buildings[0].street).toBe('Existing')
+    })
+
+    it('populates both buildings from the Parkview PDF', () => {
+      const result = wizardReducer(baseState, {
+        type: 'PREFILL_FROM_AI',
+        data: {
+          propertyName: 'Parkview Residences Berlin',
+          buildings: [
+            { street: 'Am Fiktivpark', houseNumber: '12', postalCode: '10557', city: 'Berlin' },
+            { street: 'Urbanstraße',   houseNumber: '88', postalCode: '10557', city: 'Berlin' },
+          ],
+          units: [],
+        },
+      })
+      expect(result.buildings).toHaveLength(2)
+      expect(result.buildings[1].street).toBe('Urbanstraße')
+    })
+
+    // Units
+    it('populates units from extraction', () => {
+      const result = wizardReducer(baseState, {
+        type: 'PREFILL_FROM_AI',
+        data: {
+          propertyName: null,
+          buildings:    [],
+          units: [{
+            unitNumber:       '01',
+            unitType:         'APARTMENT' as const,
+            floor:            0,
+            entrance:         'A',
+            sizeSqm:          95,
+            coOwnershipShare: 0.11,
+            constructionYear: 2023,
+            rooms:            3,
+          }],
+        },
+      })
+      expect(result.units).toHaveLength(1)
+      expect(result.units[0].unitNumber).toBe('01')
+    })
+
+    it('sets buildingId to empty string for all pre-filled units', () => {
+      // buildingId cannot be pre-filled — the AI knows "Haus A" but not
+      // the database UUID. The user assigns buildings in step 3.
+      const result = wizardReducer(baseState, {
+        type: 'PREFILL_FROM_AI',
+        data: {
+          propertyName: null,
+          buildings:    [],
+          units: [{
+            unitNumber:       '01',
+            unitType:         'APARTMENT' as const,
+            floor:            0,
+            entrance:         'A',
+            sizeSqm:          95,
+            coOwnershipShare: 0.11,
+            constructionYear: 2023,
+            rooms:            3,
+          }],
+        },
+      })
+      expect(result.units[0].buildingId).toBe('')
+    })
+
+    // coOwnershipShare conversion — the most important pre-fill test
+    it('converts coOwnershipShare from fraction to per-mille for display', () => {
+      // AI returns 0.11 (fraction) but table shows 110.0 (per-mille)
+      // This is the fix for the "400.0 / 1000" display bug
+      const result = wizardReducer(baseState, {
+        type: 'PREFILL_FROM_AI',
+        data: {
+          propertyName: null,
+          buildings:    [],
+          units: [{
+            unitNumber:       '01',
+            unitType:         'APARTMENT' as const,
+            floor:            0,
+            entrance:         'A',
+            sizeSqm:          95,
+            coOwnershipShare: 0.11,
+            constructionYear: 2023,
+            rooms:            3,
+          }],
+        },
+      })
+      expect(result.units[0].coOwnershipShare).toBe(110)
+    })
+
+    it('handles all 14 units from the Parkview PDF', () => {
+      const result = wizardReducer(baseState, {
+        type: 'PREFILL_FROM_AI',
+        data: {
+          propertyName: 'Parkview Residences Berlin',
+          buildings:    [],
+          units: [
+            { unitNumber: '01', unitType: 'APARTMENT' as const, floor: 0,  entrance: 'A', sizeSqm: 95,   coOwnershipShare: 0.110, constructionYear: 2023, rooms: 3 },
+            { unitNumber: '02', unitType: 'APARTMENT' as const, floor: 0,  entrance: 'A', sizeSqm: 92.5, coOwnershipShare: 0.108, constructionYear: 2023, rooms: 3 },
+            { unitNumber: '03', unitType: 'APARTMENT' as const, floor: 1,  entrance: 'A', sizeSqm: 105,  coOwnershipShare: 0.120, constructionYear: 2023, rooms: 4 },
+            { unitNumber: '04', unitType: 'APARTMENT' as const, floor: 2,  entrance: 'A', sizeSqm: 78,   coOwnershipShare: 0.090, constructionYear: 2023, rooms: 2 },
+            { unitNumber: '05', unitType: 'APARTMENT' as const, floor: 4,  entrance: 'A', sizeSqm: 145,  coOwnershipShare: 0.160, constructionYear: 2023, rooms: 4 },
+            { unitNumber: '06', unitType: 'OFFICE' as const,    floor: 0,  entrance: 'B', sizeSqm: 110,  coOwnershipShare: 0.125, constructionYear: 2023, rooms: null },
+            { unitNumber: '07', unitType: 'APARTMENT' as const, floor: 1,  entrance: 'B', sizeSqm: 65,   coOwnershipShare: 0.075, constructionYear: 2023, rooms: 2 },
+            { unitNumber: '08', unitType: 'APARTMENT' as const, floor: 2,  entrance: 'B', sizeSqm: 88,   coOwnershipShare: 0.102, constructionYear: 2023, rooms: 3 },
+            { unitNumber: '09', unitType: 'PARKING' as const,   floor: -1, entrance: null, sizeSqm: 12.5, coOwnershipShare: 0.001, constructionYear: 2023, rooms: null },
+            { unitNumber: '10', unitType: 'PARKING' as const,   floor: -1, entrance: null, sizeSqm: 12.5, coOwnershipShare: 0.001, constructionYear: 2023, rooms: null },
+            { unitNumber: '11', unitType: 'PARKING' as const,   floor: -1, entrance: null, sizeSqm: 12.5, coOwnershipShare: 0.001, constructionYear: 2023, rooms: null },
+            { unitNumber: '12', unitType: 'PARKING' as const,   floor: -1, entrance: null, sizeSqm: 12.5, coOwnershipShare: 0.001, constructionYear: 2023, rooms: null },
+            { unitNumber: '13', unitType: 'PARKING' as const,   floor: -1, entrance: null, sizeSqm: 12.5, coOwnershipShare: 0.001, constructionYear: 2023, rooms: null },
+            { unitNumber: '14', unitType: 'GARDEN' as const,    floor: 0,  entrance: null, sizeSqm: 40,   coOwnershipShare: 0.005, constructionYear: 2023, rooms: null },
+          ],
+        },
+      })
+      expect(result.units).toHaveLength(14)
+      expect(result.units[5].unitType).toBe('OFFICE')
+      expect(result.units[8].unitType).toBe('PARKING')
+      expect(result.units[13].unitType).toBe('GARDEN')
+    })
+
+    // null/undefined field handling
+    it('handles null entrance gracefully', () => {
+      // Parking and garden units have no entrance
+      const result = wizardReducer(baseState, {
+        type: 'PREFILL_FROM_AI',
+        data: {
+          propertyName: null,
+          buildings:    [],
+          units: [{
+            unitNumber:       'TG-01',
+            unitType:         'PARKING' as const,
+            floor:            -1,
+            entrance:         null,
+            sizeSqm:          12.5,
+            coOwnershipShare: 0.001,
+            constructionYear: 2023,
+            rooms:            null,
+          }],
+        },
+      })
+      expect(result.units[0].entrance).toBe('')
+    })
+
+    it('handles null rooms gracefully', () => {
+      const result = wizardReducer(baseState, {
+        type: 'PREFILL_FROM_AI',
+        data: {
+          propertyName: null,
+          buildings:    [],
+          units: [{
+            unitNumber:       '06',
+            unitType:         'OFFICE' as const,
+            floor:            0,
+            entrance:         'B',
+            sizeSqm:          110,
+            coOwnershipShare: 0.125,
+            constructionYear: 2023,
+            rooms:            null,
+          }],
+        },
+      })
+      expect(result.units[0].rooms).toBe('')
+    })
+
+    it('handles null coOwnershipShare gracefully', () => {
+      const result = wizardReducer(baseState, {
+        type: 'PREFILL_FROM_AI',
+        data: {
+          propertyName: null,
+          buildings:    [],
+          units: [{
+            unitNumber:       'P-01',
+            unitType:         'PARKING' as const,
+            floor:            -1,
+            entrance:         null,
+            sizeSqm:          12.5,
+            coOwnershipShare: null as any,
+            constructionYear: 2023,
+            rooms:            null,
+          }],
+        },
+      })
+      expect(result.units[0].coOwnershipShare).toBe('')
+    })
+
+    // aiPrefilled flag
+    it('sets aiPrefilled to true when buildings extracted', () => {
+      const result = wizardReducer(baseState, {
+        type: 'PREFILL_FROM_AI',
+        data: {
+          propertyName: null,
+          buildings:    [{ street: 'Test', houseNumber: '1', postalCode: '10115', city: 'Berlin' }],
+          units:        [],
+        },
+      })
+      expect(result.aiPrefilled).toBe(true)
+    })
+
+    it('sets aiPrefilled to true when units extracted', () => {
+      const result = wizardReducer(baseState, {
+        type: 'PREFILL_FROM_AI',
+        data: {
+          propertyName: null,
+          buildings:    [],
+          units: [{
+            unitNumber: '01', unitType: 'APARTMENT' as const, floor: 0,
+            entrance: 'A', sizeSqm: 95, coOwnershipShare: 0.11,
+            constructionYear: 2023, rooms: 3,
+          }],
+        },
+      })
+      expect(result.aiPrefilled).toBe(true)
+    })
+
+    it('sets aiPrefilled to false when nothing extracted', () => {
+      const result = wizardReducer(baseState, {
+        type: 'PREFILL_FROM_AI',
+        data: { propertyName: null, buildings: [], units: [] },
+      })
+      expect(result.aiPrefilled).toBe(false)
+    })
+
+    // propertyName in generalInfo
+    it('updates generalInfo name when propertyName extracted and generalInfo exists', () => {
+      const state = {
+        ...baseState,
+        generalInfo: { name: '', type: 'WEG' as const, managerId: 'm-1', accountantId: 'a-1' },
+      }
+      const result = wizardReducer(state, {
+        type: 'PREFILL_FROM_AI',
+        data: { propertyName: 'Parkview Residences Berlin', buildings: [], units: [] },
+      })
+      expect(result.generalInfo?.name).toBe('Parkview Residences Berlin')
+    })
+
+    it('does not update generalInfo when it is null (step 1 not yet submitted)', () => {
+      // generalInfo is null before the user fills step 1
+      // Pre-filling a name here would be confusing — it only applies
+      // once generalInfo exists (i.e. the form has been interacted with)
+      const result = wizardReducer(baseState, {
+        type: 'PREFILL_FROM_AI',
+        data: { propertyName: 'Parkview', buildings: [], units: [] },
+      })
+      expect(result.generalInfo).toBeNull()
+    })
+
+    it('does not change generalInfo name when no propertyName extracted', () => {
+      const state = {
+        ...baseState,
+        generalInfo: { name: 'Existing Name', type: 'WEG' as const, managerId: 'm-1', accountantId: 'a-1' },
+      }
+      const result = wizardReducer(state, {
+        type: 'PREFILL_FROM_AI',
+        data: { propertyName: null, buildings: [], units: [] },
+      })
+      expect(result.generalInfo?.name).toBe('Existing Name')
+    })
+  })
+
+  // ── RESET ───────────────────────────────────────────────
+
+  describe('RESET', () => {
+    it('resets step to 1', () => {
+      const state  = { ...baseState, step: 3 as const }
+      const result = wizardReducer(state, { type: 'RESET' })
+      expect(result.step).toBe(1)
+    })
+
+    it('clears propertyId', () => {
+      const state  = { ...baseState, propertyId: 'some-id' }
+      const result = wizardReducer(state, { type: 'RESET' })
+      expect(result.propertyId).toBeNull()
+    })
+
+    it('clears generalInfo', () => {
+      const state = {
+        ...baseState,
+        generalInfo: { name: 'Test', type: 'WEG' as const, managerId: 'm-1', accountantId: 'a-1' },
+      }
+      const result = wizardReducer(state, { type: 'RESET' })
+      expect(result.generalInfo).toBeNull()
+    })
+
+    it('clears aiPrefilled', () => {
+      const state  = { ...baseState, aiPrefilled: true }
+      const result = wizardReducer(state, { type: 'RESET' })
+      expect(result.aiPrefilled).toBe(false)
+    })
+
+    it('clears savedBuildings', () => {
+      const state = {
+        ...baseState,
+        savedBuildings: [{ id: 'b-1', propertyId: 'p-1', street: 'Test', houseNumber: '1', postalCode: '10115', city: 'Berlin' }],
+      }
+      const result = wizardReducer(state, { type: 'RESET' })
+      expect(result.savedBuildings).toHaveLength(0)
+    })
+
+    it('resets buildings to one empty building', () => {
+      const state = {
+        ...baseState,
+        buildings: [
+          { street: 'Test 1', houseNumber: '1', postalCode: '10115', city: 'Berlin' },
+          { street: 'Test 2', houseNumber: '2', postalCode: '10116', city: 'Berlin' },
+        ],
+      }
+      const result = wizardReducer(state, { type: 'RESET' })
+      expect(result.buildings).toHaveLength(1)
+      expect(result.buildings[0].street).toBe('')
+    })
+  })
+})

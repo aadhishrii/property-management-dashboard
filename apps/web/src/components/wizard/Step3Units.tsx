@@ -6,6 +6,7 @@ import { upsertUnits } from '@/lib/api'
 import type { UnitFormData } from '@/context/WizardContext'
 import type { UnitType } from '@/lib/api'
 import toast from 'react-hot-toast'
+import { incrementUnitNumber } from '@/lib/unitNumber'
 
 
 const UNIT_TYPES: UnitType[] = ['APARTMENT', 'OFFICE', 'GARDEN', 'PARKING']
@@ -653,10 +654,3 @@ export function Step3Units({ onComplete }: Step3UnitsProps) {
   )
 }
 
-function incrementUnitNumber(unitNumber: string): string {
-  const match = unitNumber.match(/^(.*?)(\d+)$/)
-  if (!match) return `${unitNumber}-copy`
-  const prefix = match[1]
-  const num    = parseInt(match[2], 10)
-  return `${prefix}${num + 1}`
-}
