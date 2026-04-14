@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Property } from '@/lib/api'
 import { deleteProperty } from '@/lib/api'
+import toast from 'react-hot-toast'
+
 
 interface PropertyCardProps {
   property:  Property
@@ -28,6 +30,7 @@ export function PropertyCard({ property, onDeleted }: PropertyCardProps) {
     setDeleting(true)
     try {
       await deleteProperty(property.id)
+      toast.success(`${property.name} deleted`)
       onDeleted()
     } catch {
       setDeleting(false)

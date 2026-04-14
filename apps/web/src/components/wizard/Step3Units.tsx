@@ -5,6 +5,8 @@ import { useWizard, makeEmptyUnit } from '@/context/WizardContext'
 import { upsertUnits } from '@/lib/api'
 import type { UnitFormData } from '@/context/WizardContext'
 import type { UnitType } from '@/lib/api'
+import toast from 'react-hot-toast'
+
 
 const UNIT_TYPES: UnitType[] = ['APARTMENT', 'OFFICE', 'GARDEN', 'PARKING']
 
@@ -187,6 +189,7 @@ export function Step3Units({ onComplete }: Step3UnitsProps) {
       }
 
       dispatch({ type: 'SET_UNITS', data: units })
+      toast.success(`Property created successfully`)
       onComplete()
     } catch (err: any) {
       const msg = err?.response?.data?.message

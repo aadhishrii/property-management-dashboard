@@ -5,6 +5,8 @@ import { Step1GeneralInfo } from './Step1GeneralInfo'
 import { Step2Buildings } from './Step2Buildings'
 import { Step3Units } from './Step3Units'
 import { deleteProperty } from '@/lib/api'
+import toast from 'react-hot-toast'
+
 
 interface WizardShellProps {
   onComplete: () => void
@@ -33,17 +35,17 @@ export function WizardShell({ onComplete, onClose }: WizardShellProps) {
   // If the user closes the wizard after step 1 has already saved a property
   // to the backend, we clean it up so the dashboard doesn't show half-created
   // properties. If they're on step 1 still, nothing has been saved yet.
-  async function handleClose() {
-    if (state.propertyId) {
-      try {
-        await deleteProperty(state.propertyId)
-      } catch {
-        // Silently ignore — worst case a partial property stays in the DB
-        // The user can delete it from the dashboard later
-      }
+async function handleClose() {
+  if (state.propertyId) {
+    try {
+      await deleteProperty(state.propertyId)
+      toast('Draft discarded', { icon: '🗑️' })
+    } catch {
+      // silently ignore
     }
-    onClose()
   }
+  onClose()
+}
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 overflow-y-auto py-8">
