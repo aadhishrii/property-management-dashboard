@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: rgb(249 250 251);
+    color: rgb(17 24 39);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  .ai-prefilled {
+    background-color: rgb(250 245 255);
+    border-color: rgb(233 213 255);
+    transition: colors 0.15s;
+  }
+
+  .ai-prefilled:focus {
+    background-color: white;
+    border-color: rgb(209 213 219);
+  }
+
+  .input {
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(209 213 219);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    transition: colors 0.15s;
+  }
+
+  .input:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: rgb(59 130 246);
+    border-color: transparent;
+  }
+
+  .input:disabled {
+    background-color: rgb(243 244 246);
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    background-color: rgb(37 99 235);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: colors 0.15s;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-primary:hover {
+    background-color: rgb(29 78 216);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    border: 1px solid rgb(209 213 219);
+    color: rgb(55 65 81);
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: colors 0.15s;
+    cursor: pointer;
+    background-color: white;
+  }
+
+  .btn-secondary:hover {
+    background-color: rgb(249 250 251);
+  }
+
+  .btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
