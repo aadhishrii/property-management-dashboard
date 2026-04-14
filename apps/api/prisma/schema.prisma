@@ -1,0 +1,83 @@
+// This file is the single source of truth for the entire data model.
+// Prisma reads it to:
+//   1. Generate a TypeScript client with fully typed queries
+//   2. Create and run database migrations
+//   3. Validate query field names at compile time — typos are caught before runtime
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PropertyType {
+  WEG
+  MV
+}
+
+enum UnitType {
+  APARTMENT
+  OFFICE
+  GARDEN
+  PARKING
+}
+
+enum StaffRole {
+  MANAGER
+  ACCOUNTANT
+}
+
+model Staff {
+  id        String    @id @default(uuid())
+  name      String
+  email     String    @unique
+  role      StaffRole
+  createdAt DateTime  @default(now())
+
+  managedProperties   Property[] @relation("PropertyManager")
+  accountedProperties Property[] @relation("PropertyAccountant")
+}
+
+model Property {
+  id             String       @id @default(uuid())
+  propertyNumber String       @unique
+  name           String
+  type           PropertyType
+  managerId      String
+  accountantId   String
+  manager        Staff        @relation("PropertyManager", fields: [managerId], references: [id])
+  accountant     Staff        @relation("PropertyAccountant", fields: [accountantId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  buildings      Building[]
+}
+
+model Building {
+  id          String   @id @default(uuid())
+  propertyId  String
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  street      String
+  houseNumber String
+  postalCode  String
+  city        String
+  createdAt   DateTime @default(now())
+  units       Unit[]
+}
+
+model Unit {
+  id               String   @id @default(uuid())
+  buildingId       String
+  building         Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  unitNumber       String
+  unitType         UnitType
+  floor            Int
+  entrance         String?
+  sizeSqm          Float
+  coOwnershipShare Float
+  constructionYear Int?
+  rooms            Int?
+  createdAt        DateTime @default(now())
+}
