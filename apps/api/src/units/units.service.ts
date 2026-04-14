@@ -66,11 +66,13 @@ export class UnitsService {
     // This is a warning not a hard error — the user may be mid-entry
     // and intending to adjust shares. We return the warning alongside
     // the saved units so the frontend can display it in the UI.
-    const totalShare = dto.units.reduce((sum, u) => sum + u.coOwnershipShare, 0)
-    const shareWarning =
-      Math.abs(totalShare - 1) > 0.001
-        ? `Co-ownership shares total ${(totalShare * 100).toFixed(2)}% — expected 100%`
-        : null
+   const totalShare = dto.units.reduce((sum, u) => sum + u.coOwnershipShare, 0)
+   const shareWarning =
+  dto.units.length === 0
+    ? null
+    : Math.abs(totalShare - 1) > 0.001
+    ? `Co-ownership shares total ${(totalShare * 100).toFixed(2)}% — expected 100%`
+    : null
 
     return {
       units: savedUnits,

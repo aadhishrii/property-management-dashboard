@@ -284,33 +284,36 @@ describe('UnitsService', () => {
 
     // Real data from the Parkview PDF
     // 110+108+120+90+160+125+75+102+(5*5)+5 = 1000/1000 = exactly 1.0
-    it('accepts the exact shares from the Parkview test PDF', async () => {
-      mockPrisma.property.findUnique.mockResolvedValue({
-        id:        'property-1',
-        buildings: [mockBuilding],
-      })
+it('correctly calculates Parkview PDF shares total 900/1000', async () => {
+  mockPrisma.property.findUnique.mockResolvedValue({
+    id:        'property-1',
+    buildings: [mockBuilding],
+  })
 
-      const result = await service.upsertForProperty('property-1', {
-        units: [
-          makeUnit({ unitNumber: '01', coOwnershipShare: 0.110 }),
-          makeUnit({ unitNumber: '02', coOwnershipShare: 0.108 }),
-          makeUnit({ unitNumber: '03', coOwnershipShare: 0.120 }),
-          makeUnit({ unitNumber: '04', coOwnershipShare: 0.090 }),
-          makeUnit({ unitNumber: '05', coOwnershipShare: 0.160 }),
-          makeUnit({ unitNumber: '06', coOwnershipShare: 0.125 }),
-          makeUnit({ unitNumber: '07', coOwnershipShare: 0.075 }),
-          makeUnit({ unitNumber: '08', coOwnershipShare: 0.102 }),
-          makeUnit({ unitNumber: '09', coOwnershipShare: 0.001 }),
-          makeUnit({ unitNumber: '10', coOwnershipShare: 0.001 }),
-          makeUnit({ unitNumber: '11', coOwnershipShare: 0.001 }),
-          makeUnit({ unitNumber: '12', coOwnershipShare: 0.001 }),
-          makeUnit({ unitNumber: '13', coOwnershipShare: 0.001 }),
-          makeUnit({ unitNumber: '14', coOwnershipShare: 0.005 }),
-        ],
-      })
+  const result = await service.upsertForProperty('property-1', {
+    units: [
+      makeUnit({ unitNumber: '01', coOwnershipShare: 0.110 }),
+      makeUnit({ unitNumber: '02', coOwnershipShare: 0.108 }),
+      makeUnit({ unitNumber: '03', coOwnershipShare: 0.120 }),
+      makeUnit({ unitNumber: '04', coOwnershipShare: 0.090 }),
+      makeUnit({ unitNumber: '05', coOwnershipShare: 0.160 }),
+      makeUnit({ unitNumber: '06', coOwnershipShare: 0.125 }),
+      makeUnit({ unitNumber: '07', coOwnershipShare: 0.075 }),
+      makeUnit({ unitNumber: '08', coOwnershipShare: 0.102 }),
+      makeUnit({ unitNumber: '09', coOwnershipShare: 0.001 }),
+      makeUnit({ unitNumber: '10', coOwnershipShare: 0.001 }),
+      makeUnit({ unitNumber: '11', coOwnershipShare: 0.001 }),
+      makeUnit({ unitNumber: '12', coOwnershipShare: 0.001 }),
+      makeUnit({ unitNumber: '13', coOwnershipShare: 0.001 }),
+      makeUnit({ unitNumber: '14', coOwnershipShare: 0.005 }),
+    ],
+  })
 
-      expect(result.shareWarning).toBeNull()
-    })
+  // Parkview PDF shares total 900/1000 not 1000/1000
+  // The warning correctly flags this for the user to review
+  expect(result.shareWarning).not.toBeNull()
+  expect(result.shareWarning).toContain('90.00%')
+})
   })
 
   // ── Return value ────────────────────────────────────────
