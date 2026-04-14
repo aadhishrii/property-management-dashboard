@@ -16,15 +16,15 @@ const UNIT_TYPE_LABELS: Record<UnitType, string> = {
 }
 
 const COLUMNS = [
-  { key: 'unitNumber',       label: 'Unit no.',  width: 'w-20' },
-  { key: 'unitType',         label: 'Type',      width: 'w-28' },
-  { key: 'buildingId',       label: 'Building',  width: 'w-32' },
-  { key: 'floor',            label: 'Floor',     width: 'w-16' },
-  { key: 'entrance',         label: 'Entrance',  width: 'w-20' },
-  { key: 'sizeSqm',          label: 'Size (m²)', width: 'w-20' },
-  { key: 'coOwnershipShare', label: 'Share (‰)', width: 'w-20' },
-  { key: 'constructionYear', label: 'Year',      width: 'w-20' },
-  { key: 'rooms',            label: 'Rooms',     width: 'w-16' },
+  { key: 'unitNumber',       label: 'Unit no.',  width: 'min-w-[80px]'  },
+  { key: 'unitType',         label: 'Type',      width: 'min-w-[110px]' },
+  { key: 'buildingId',       label: 'Building',  width: 'min-w-[160px]' },
+  { key: 'floor',            label: 'Floor',     width: 'min-w-[70px]'  },
+  { key: 'entrance',         label: 'Entrance',  width: 'min-w-[80px]'  },
+  { key: 'sizeSqm',          label: 'Size (m²)', width: 'min-w-[90px]'  },
+  { key: 'coOwnershipShare', label: 'Share (‰)', width: 'min-w-[90px]'  },
+  { key: 'constructionYear', label: 'Year',      width: 'min-w-[80px]'  },
+  { key: 'rooms',            label: 'Rooms',     width: 'min-w-[70px]'  },
 ] as const
 
 interface Step3UnitsProps {

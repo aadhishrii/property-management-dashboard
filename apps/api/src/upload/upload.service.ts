@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 // import pdfParse from 'pdf-parse'
 
 // The shape we expect Claude to return
-const pdfParse = require('pdf-parse/lib/pdf-parse.js')
+const pdfParse = require('pdf-parse-fork')
 
 export interface ExtractedProperty {
   propertyName: string | null
