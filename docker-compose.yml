@@ -1,13 +1,11 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
     container_name: buena_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: buena
-      POSTGRES_PASSWORD: buena_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: buena_properties
     ports:
       - '5432:5432'
