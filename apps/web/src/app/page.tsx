@@ -57,7 +57,9 @@ export default function DashboardPage() {
         ) : properties.length === 0 ? (
           <EmptyState onCreateClick={() => setWizardOpen(true)} />
         ) : (
-          <PropertyList properties={properties} />
+          <PropertyList
+            properties={properties}
+            onDeleted={refetch}/>
         )}
       </main>
 
