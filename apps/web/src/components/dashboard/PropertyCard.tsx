@@ -69,10 +69,12 @@ export function PropertyCard({ property, onDeleted }: PropertyCardProps) {
         {property.manager.name}
       </span>
 
-      {/* Building count */}
-      <span className="text-sm text-gray-400 w-24 text-right shrink-0">
-        {buildingCount} {buildingCount === 1 ? 'building' : 'buildings'}
-      </span>
+      {/* Building and unit count */}
+      <span className="text-sm text-gray-400 w-40 text-right shrink-0">
+  {buildingCount} {buildingCount === 1 ? 'building' : 'buildings'}
+  {' · '}
+  {property.unitCount} {property.unitCount === 1 ? 'unit' : 'units'}
+</span>
 
       {/* Created date */}
       <span className="text-xs text-gray-400 w-24 text-right shrink-0">

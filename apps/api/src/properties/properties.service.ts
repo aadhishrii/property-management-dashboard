@@ -18,21 +18,30 @@ export class PropertiesService {
   }
 
   async findAll() {
-    return this.prisma.property.findMany({
-      include: {
-        // Include manager and accountant names for the dashboard table —
-        // avoids a second request just to display who manages each property
-        manager:    { select: { id: true, name: true } },
-        accountant: { select: { id: true, name: true } },
-        // _count lets us show "3 buildings · 47 units" in the dashboard
-        // without fetching all the nested records
-        _count: {
-          select: { buildings: true },
+  const properties = await this.prisma.property.findMany({
+    include: {
+      manager:    { select: { id: true, name: true } },
+      accountant: { select: { id: true, name: true } },
+      _count: {
+        select: { buildings: true },
+      },
+      buildings: {
+        select: {
+          _count: {
+            select: { units: true },
+          },
         },
       },
-      orderBy: { createdAt: 'desc' },
-    })
-  }
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  // Calculate total unit count per property from building counts
+  return properties.map(p => ({
+    ...p,
+    unitCount: p.buildings.reduce((sum, b) => sum + b._count.units, 0),
+  }))
+}
 
   async findOne(id: string) {
     const property = await this.prisma.property.findUnique({

@@ -22,6 +22,7 @@ export interface Property {
   manager:        StaffMember
   accountant:     StaffMember
   createdAt:      string
+  unitCount:      number
   _count:         { buildings: number }
 }
 
