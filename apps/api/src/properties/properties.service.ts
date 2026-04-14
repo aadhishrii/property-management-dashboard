@@ -12,10 +12,28 @@ export class PropertiesService {
   // We count existing properties of the same type so WEG and MV have
   // independent sequences — BU-WEG-00001 and BU-MV-00001 can both exist.
   private async generatePropertyNumber(type: PropertyType): Promise<string> {
-    const count = await this.prisma.property.count({ where: { type } })
-    const sequence = String(count + 1).padStart(5, '0')
-    return `BU-${type}-${sequence}`
+  // Find the highest existing sequence for this type
+  // Using count is unreliable if properties have been deleted —
+  // we could generate a number that already exists
+  const latest = await this.prisma.property.findFirst({
+    where: { type },
+    orderBy: { propertyNumber: 'desc' },
+    select: { propertyNumber: true },
+  })
+
+  let sequence = 1
+
+  if (latest) {
+    // Extract the number from e.g. "BU-WEG-00007" → 7
+    const parts = latest.propertyNumber.split('-')
+    const lastNum = parseInt(parts[parts.length - 1], 10)
+    if (!isNaN(lastNum)) {
+      sequence = lastNum + 1
+    }
   }
+
+  return `BU-${type}-${String(sequence).padStart(5, '0')}`
+}
 
   async findAll() {
   const properties = await this.prisma.property.findMany({

@@ -173,14 +173,20 @@ export function Step3Units({ onComplete }: Step3UnitsProps) {
 
     try {
       const payload = units.map((u) => ({
-        ...u,
-        floor:            Number(u.floor),
-        sizeSqm:          Number(u.sizeSqm),
-        coOwnershipShare: Number(u.coOwnershipShare) / 1000,
-        constructionYear: u.constructionYear !== '' ? Number(u.constructionYear) : undefined,
-        rooms:            u.rooms !== '' ? Number(u.rooms) : undefined,
-        entrance:         u.entrance || undefined,
-      }))
+  unitNumber:       u.unitNumber,
+  unitType:         u.unitType,
+  buildingId:       u.buildingId,
+  floor:            Number(u.floor) || 0,
+  entrance:         u.entrance || undefined,
+  sizeSqm:          Number(u.sizeSqm),
+  coOwnershipShare: Number(u.coOwnershipShare) / 1000,
+  constructionYear: u.constructionYear !== '' && u.constructionYear !== undefined
+    ? Number(u.constructionYear)
+    : undefined,
+  rooms: u.rooms !== '' && u.rooms !== undefined
+    ? Number(u.rooms)
+    : undefined,
+}))
 
       const result = await upsertUnits(state.propertyId, payload)
 
