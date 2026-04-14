@@ -81,6 +81,39 @@ export async function createProperty(payload: {
   return data
 }
 
+export interface PropertyDetail {
+  id:             string
+  propertyNumber: string
+  name:           string
+  type:           PropertyType
+  manager:        StaffMember
+  accountant:     StaffMember
+  createdAt:      string
+  buildings: Array<{
+    id:          string
+    street:      string
+    houseNumber: string
+    postalCode:  string
+    city:        string
+    units: Array<{
+      id:               string
+      unitNumber:       string
+      unitType:         UnitType
+      floor:            number
+      entrance:         string | null
+      sizeSqm:          number
+      coOwnershipShare: number
+      constructionYear: number | null
+      rooms:            number | null
+    }>
+  }>
+}
+
+export async function fetchProperty(id: string): Promise<PropertyDetail> {
+  const { data } = await api.get(`/properties/${id}`)
+  return data
+}
+
 export async function deleteProperty(id: string): Promise<void> {
   await api.delete(`/properties/${id}`)
 }
