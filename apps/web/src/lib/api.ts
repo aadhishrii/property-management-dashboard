@@ -71,10 +71,11 @@ export async function fetchProperties(): Promise<Property[]> {
 }
 
 export async function createProperty(payload: {
-  name:         string
-  type:         PropertyType
-  managerId:    string
-  accountantId: string
+  name:              string
+  type:              PropertyType
+  managerId:         string
+  accountantId:      string
+  confirmDuplicate?: boolean
 }): Promise<Property> {
   const { data } = await api.post('/properties', payload)
   return data

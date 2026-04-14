@@ -16,9 +16,14 @@ export function Step1GeneralInfo() {
   const [errors,       setErrors]       = useState<Record<string, string>>({})
   const [submitting,   setSubmitting]   = useState(false)
 
-  const [pdfFile,       setPdfFile]       = useState<File | null>(null)
-  const [extracting,    setExtracting]    = useState(false)
-  const [extractNotice, setExtractNotice] = useState<string | null>(null)
+  const [pdfFile,        setPdfFile]        = useState<File | null>(null)
+  const [extracting,     setExtracting]     = useState(false)
+  const [extractNotice,  setExtractNotice]  = useState<string | null>(null)
+  const [duplicateWarning, setDuplicateWarning] = useState<{
+    message:  string
+    existing: Array<{ propertyNumber: string; type: string }>
+  } | null>(null)
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: staff } = useQuery({
@@ -67,7 +72,7 @@ export function Step1GeneralInfo() {
     return e
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(confirmDuplicate = false) {
     const validationErrors = validate()
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors)
@@ -76,15 +81,33 @@ export function Step1GeneralInfo() {
 
     setSubmitting(true)
     setErrors({})
+    setDuplicateWarning(null)
 
     try {
-      const property = await createProperty({ name, type, managerId, accountantId })
+      const property = await createProperty({
+        name,
+        type,
+        managerId,
+        accountantId,
+        confirmDuplicate,
+      })
 
       dispatch({ type: 'SET_GENERAL_INFO', data: { name, type, managerId, accountantId } })
       dispatch({ type: 'SET_PROPERTY_ID',  propertyId: property.id })
       dispatch({ type: 'NEXT_STEP' })
     } catch (err: any) {
-      const msg = err?.response?.data?.message
+      const response = err?.response?.data
+
+      if (response?.type === 'DUPLICATE_WARNING' || err?.response?.status === 409) {
+  setDuplicateWarning({
+    message:  response.message,
+    existing: response.existing ?? [],
+  })
+  setSubmitting(false)
+  return
+}
+
+      const msg = response?.message
       setErrors({ submit: Array.isArray(msg) ? msg.join(', ') : msg ?? 'Something went wrong' })
     } finally {
       setSubmitting(false)
@@ -223,21 +246,69 @@ export function Step1GeneralInfo() {
         {errors.accountantId && <p className="mt-1 text-xs text-red-500">{errors.accountantId}</p>}
       </div>
 
+      {/* Submit error */}
       {errors.submit && (
         <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-lg">
           {errors.submit}
         </p>
       )}
 
+      {/* Duplicate warning */}
+      {duplicateWarning && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 space-y-3">
+          <div className="flex items-start gap-2">
+            <svg className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-yellow-800">
+                {duplicateWarning.message}
+              </p>
+              <p className="text-xs text-yellow-700 mt-1">
+                Existing {duplicateWarning.existing.length > 1 ? 'properties' : 'property'} with this name:
+              </p>
+              <ul className="mt-1 space-y-0.5">
+                {duplicateWarning.existing.map((p) => (
+                  <li key={p.propertyNumber} className="text-xs font-mono text-yellow-800">
+                    {p.propertyNumber} ({p.type})
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-yellow-700 mt-2">
+                Do you still want to create a new property with this name?
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button
+              type="button"
+              className="btn-secondary text-xs py-1.5"
+              onClick={() => setDuplicateWarning(null)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn-primary text-xs py-1.5"
+              onClick={() => handleSubmit(true)}
+            >
+              Yes, create anyway
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
       <div className="flex justify-end pt-2 border-t border-gray-100">
         <button
           className="btn-primary"
-          onClick={handleSubmit}
+          onClick={() => handleSubmit(false)}
           disabled={submitting}
         >
           {submitting ? 'Saving...' : 'Next — Buildings'}
         </button>
       </div>
+
     </div>
   )
 }

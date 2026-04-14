@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { Injectable, NotFoundException, HttpException, HttpStatus } from '@nestjs/common'
 import { PropertyType } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreatePropertyDto } from './properties.dto'
@@ -54,23 +54,54 @@ export class PropertiesService {
     return property
   }
 
-  async create(dto: CreatePropertyDto) {
-    const propertyNumber = await this.generatePropertyNumber(dto.type)
+async create(dto: CreatePropertyDto & { confirmDuplicate?: boolean }) {
+  // Check for properties with the same name (case-insensitive)
+  const existing = await this.prisma.property.findMany({
+    where: {
+      name: {
+        equals: dto.name,
+        mode: 'insensitive',
+      },
+    },
+    select: {
+      propertyNumber: true,
+      name: true,
+      type: true,
+    },
+  })
 
-    return this.prisma.property.create({
-      data: {
-        name:          dto.name,
-        type:          dto.type,
-        propertyNumber,
-        managerId:     dto.managerId,
-        accountantId:  dto.accountantId,
-      },
-      // Return manager and accountant names immediately so the frontend
-      // can display the new property card without a second request
-      include: {
-        manager:    { select: { id: true, name: true } },
-        accountant: { select: { id: true, name: true } },
-      },
-    })
+  // If duplicates exist and user hasn't confirmed, return a warning
+  // The frontend shows a confirmation dialog with the existing property numbers
+  // The user must explicitly confirm before we proceed
+if (existing.length > 0 && !dto.confirmDuplicate) {
+  const payload = {
+    type:     'DUPLICATE_WARNING',
+    message:  `A property named "${dto.name}" already exists`,
+    existing: existing.map(p => ({
+      propertyNumber: p.propertyNumber,
+      type:           p.type,
+    })),
   }
+  console.log('Throwing duplicate warning:', JSON.stringify(payload))
+  throw new HttpException(payload, HttpStatus.CONFLICT)
+}
+
+  const propertyNumber = await this.generatePropertyNumber(dto.type)
+
+  return this.prisma.property.create({
+    data: {
+      name:          dto.name,
+      type:          dto.type,
+      propertyNumber,
+      managerId:     dto.managerId,
+      accountantId:  dto.accountantId,
+    },
+    include: {
+      manager:    { select: { id: true, name: true } },
+      accountant: { select: { id: true, name: true } },
+    },
+  })
+}
+
+
 }
