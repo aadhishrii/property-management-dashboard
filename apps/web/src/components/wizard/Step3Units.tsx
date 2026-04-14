@@ -15,6 +15,7 @@ const UNIT_TYPE_LABELS: Record<UnitType, string> = {
   PARKING:   'Parking',
 }
 
+
 const COLUMNS = [
   { key: 'unitNumber',       label: 'Unit no.',  width: 'min-w-[80px]'  },
   { key: 'unitType',         label: 'Type',      width: 'min-w-[110px]' },
@@ -33,6 +34,22 @@ interface Step3UnitsProps {
 
 export function Step3Units({ onComplete }: Step3UnitsProps) {
   const { state, dispatch } = useWizard()
+  const [showGenerator, setShowGenerator] = useState(false)
+  const [genCount,       setGenCount]       = useState<number | ''>(10)
+  const [genStartNumber, setGenStartNumber] = useState('')
+  const [genPrefix,      setGenPrefix]      = useState('W-')
+  const [genType,        setGenType]        = useState<UnitType>('APARTMENT')
+  const [genBuildingId,  setGenBuildingId]  = useState('')
+  const [genFloorCount,  setGenFloorCount]  = useState<number | ''>(1)
+  const [genUnitsPerFloor, setGenUnitsPerFloor] = useState<number | ''>(1)
+  const [genStartFloor,  setGenStartFloor]  = useState<number | ''>(0)
+  const [genEntrance,    setGenEntrance]    = useState('')
+  const [genYear,        setGenYear]        = useState<number | ''>(2023)
+  const [genRooms,       setGenRooms]       = useState<number | ''>('')
+  const [genShareEach,   setGenShareEach]   = useState<number | ''>('')
+  const [genSizeSqm, setGenSizeSqm] = useState<number | ''>('')
+
+
 
   const [units,        setUnits]        = useState<UnitFormData[]>(state.units)
   const [errors,       setErrors]       = useState<Record<string, string>>({})
@@ -59,6 +76,7 @@ export function Step3Units({ onComplete }: Step3UnitsProps) {
       ...prev.slice(index + 1),
     ])
   }
+
 
   function deleteRow(index: number) {
     if (units.length === 1) return
@@ -87,6 +105,7 @@ export function Step3Units({ onComplete }: Step3UnitsProps) {
     }
   }
 
+
   // Calculate share total in per-mille for display
   const shareTotal = units.reduce((sum, u) => {
     const val = typeof u.coOwnershipShare === 'number'
@@ -107,6 +126,37 @@ export function Step3Units({ onComplete }: Step3UnitsProps) {
     })
     return e
   }
+
+  function generateUnits() {
+  if (!genCount || !genPrefix) return
+
+  const count        = Number(genCount)
+  const startNumber  = genStartNumber ? parseInt(genStartNumber) : 1
+  const unitsPerFloor = Number(genUnitsPerFloor) || 1
+  const startFloor   = Number(genStartFloor) ?? 0
+
+  const generated: UnitFormData[] = Array.from({ length: count }, (_, i) => {
+    const floor = startFloor + Math.floor(i / unitsPerFloor)
+    const unitNum = startNumber + i
+
+    return {
+      id:               Math.random().toString(36).slice(2),
+      unitNumber:       `${genPrefix}${String(unitNum).padStart(2, '0')}`,
+      unitType:         genType,
+      buildingId:       genBuildingId,
+      floor,
+      entrance:         genEntrance,
+      sizeSqm: genSizeSqm !== '' ? genSizeSqm : '',
+      coOwnershipShare: genShareEach !== '' ? genShareEach : '',
+      constructionYear: genYear !== '' ? genYear : '',
+      rooms:            genRooms !== '' ? genRooms : '',
+    }
+  })
+
+  // Append to existing units rather than replacing them
+  setUnits(prev => [...prev.filter(u => u.unitNumber !== ''), ...generated])
+  setShowGenerator(false)
+}
 
   async function handleSubmit() {
     const validationErrors = validate()
@@ -153,6 +203,216 @@ export function Step3Units({ onComplete }: Step3UnitsProps) {
           <span className="font-medium">AI pre-filled {units.filter(u => u.unitNumber).length} units</span> — assign each unit to a building using the Building column, then review and confirm.
         </div>
       )}
+
+      {/* Bulk unit generator modal */}
+{showGenerator && (
+  <div className="border border-blue-200 bg-blue-50/50 rounded-xl p-4 space-y-4">
+    <div className="flex items-center justify-between">
+      <div>
+        <h3 className="text-sm font-semibold text-gray-900">Bulk unit generator</h3>
+        <p className="text-xs text-gray-500 mt-0.5">Generate multiple units with a pattern in one click</p>
+      </div>
+      <button
+        type="button"
+        onClick={() => setShowGenerator(false)}
+        className="text-gray-400 hover:text-gray-600"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <div className="grid grid-cols-4 gap-3">
+      {/* Prefix */}
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Unit prefix</label>
+        <input
+          className="input text-sm"
+          placeholder="W-"
+          value={genPrefix}
+          onChange={e => setGenPrefix(e.target.value)}
+        />
+      </div>
+
+      {/* Starting number */}
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Starting number</label>
+        <input
+          type="number"
+          className="input text-sm"
+          placeholder="101"
+          value={genStartNumber}
+          onChange={e => setGenStartNumber(e.target.value)}
+        />
+      </div>
+
+      {/* Total count */}
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Total units</label>
+        <input
+          type="number"
+          className="input text-sm"
+          placeholder="24"
+          value={genCount}
+          onChange={e => setGenCount(e.target.value ? Number(e.target.value) : '')}
+        />
+      </div>
+
+      {/* Units per floor */}
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Units per floor</label>
+        <input
+          type="number"
+          className="input text-sm"
+          placeholder="6"
+          value={genUnitsPerFloor}
+          onChange={e => setGenUnitsPerFloor(e.target.value ? Number(e.target.value) : '')}
+        />
+      </div>
+
+      {/* Starting floor */}
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Starting floor</label>
+        <input
+          type="number"
+          className="input text-sm"
+          placeholder="0"
+          value={genStartFloor}
+          onChange={e => setGenStartFloor(e.target.value !== '' ? Number(e.target.value) : '')}
+        />
+      </div>
+
+      {/* Unit type */}
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Unit type</label>
+        <select
+          className="input text-sm"
+          value={genType}
+          onChange={e => setGenType(e.target.value as UnitType)}
+        >
+          {UNIT_TYPES.map(t => (
+            <option key={t} value={t}>{UNIT_TYPE_LABELS[t]}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Size */}
+<div>
+  <label className="block text-xs text-gray-500 mb-1">Size (m²)</label>
+  <input
+    type="number"
+    className="input text-sm"
+    placeholder="68"
+    value={genSizeSqm}
+    onChange={e => setGenSizeSqm(e.target.value ? Number(e.target.value) : '')}
+  />
+</div>
+
+      {/* Building */}
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Building</label>
+        <select
+          className="input text-sm"
+          value={genBuildingId}
+          onChange={e => setGenBuildingId(e.target.value)}
+        >
+          <option value="">Select</option>
+          {state.savedBuildings.map((b, i) => (
+            <option key={b.id} value={b.id}>
+              {b.street} {b.houseNumber} (Bldg {i + 1})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Entrance */}
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Entrance</label>
+        <input
+          className="input text-sm"
+          placeholder="A"
+          value={genEntrance}
+          onChange={e => setGenEntrance(e.target.value)}
+        />
+      </div>
+
+      {/* Construction year */}
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Construction year</label>
+        <input
+          type="number"
+          className="input text-sm"
+          placeholder="2023"
+          value={genYear}
+          onChange={e => setGenYear(e.target.value ? Number(e.target.value) : '')}
+        />
+      </div>
+
+      {/* Rooms */}
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Rooms</label>
+        <input
+          type="number"
+          className="input text-sm"
+          placeholder="3"
+          value={genRooms}
+          onChange={e => setGenRooms(e.target.value ? Number(e.target.value) : '')}
+        />
+      </div>
+
+      {/* Share per unit */}
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Share each (‰)</label>
+        <input
+          type="number"
+          className="input text-sm"
+          placeholder="41.6"
+          value={genShareEach}
+          onChange={e => setGenShareEach(e.target.value ? Number(e.target.value) : '')}
+        />
+      </div>
+    </div>
+
+    {/* Preview */}
+    {genCount && genPrefix && (
+      <div className="bg-white border border-blue-100 rounded-lg px-3 py-2 text-xs text-gray-500">
+        Will generate <span className="font-medium text-gray-900">{genCount} units</span>
+        {' '}named <span className="font-mono font-medium text-gray-900">{genPrefix}{genStartNumber || '01'}</span>
+        {' '}to <span className="font-mono font-medium text-gray-900">{genPrefix}{String((parseInt(genStartNumber || '1') + Number(genCount) - 1)).padStart(2, '0')}</span>
+        {genUnitsPerFloor && genStartFloor !== ''
+          ? `, floors ${genStartFloor} to ${Number(genStartFloor) + Math.ceil(Number(genCount) / Number(genUnitsPerFloor)) - 1}`
+          : ''
+        }
+      </div>
+    )}
+
+    <div className="flex justify-end">
+      <button
+        type="button"
+        className="btn-primary"
+        onClick={generateUnits}
+        disabled={!genCount || !genPrefix}
+      >
+        Generate {genCount || ''} units
+      </button>
+    </div>
+  </div>
+)}
+
+{/* Button to open generator */}
+{!showGenerator && (
+  <button
+    type="button"
+    onClick={() => setShowGenerator(true)}
+    className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+  >
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+    </svg>
+    Bulk generate units
+  </button>
+)}
 
       {/* Scrollable table */}
       <div className="overflow-x-auto rounded-xl border border-gray-200" ref={tableRef}>
