@@ -8,7 +8,7 @@ interface PropertyListProps {
 
 export function PropertyList({ properties, onDeleted }: PropertyListProps) {
   return (
-    <div className="space-y-3">
+    <div className="stagger-children" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       {properties.map((property) => (
         <PropertyCard
           key={property.id}

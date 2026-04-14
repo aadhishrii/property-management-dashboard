@@ -2,84 +2,157 @@
 
 @layer base {
   body {
-    background-color: rgb(249 250 251);
-    color: rgb(17 24 39);
+    background-color: #f8f7f4;
+    color: #1a1a1a;
     -webkit-font-smoothing: antialiased;
+    font-family: 'DM Sans', sans-serif;
   }
 }
 
 @layer components {
   .ai-prefilled {
-    background-color: rgb(250 245 255);
-    border-color: rgb(233 213 255);
-    transition: colors 0.15s;
+    background-color: #faf5ff;
+    border-color: #d8b4fe;
+    transition: all 0.2s ease;
   }
-
   .ai-prefilled:focus {
     background-color: white;
-    border-color: rgb(209 213 219);
+    border-color: #a78bfa;
   }
 
   .input {
     width: 100%;
-    border-radius: 0.5rem;
-    border: 1px solid rgb(209 213 219);
+    border-radius: 0.625rem;
+    border: 1.5px solid #e5e1d8;
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
-    transition: colors 0.15s;
-  }
-
-  .input:focus {
+    background: white;
+    color: #1a1a1a;
+    transition: all 0.15s ease;
     outline: none;
-    ring: 2px;
-    ring-color: rgb(59 130 246);
-    border-color: transparent;
   }
-
+  .input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
   .input:disabled {
-    background-color: rgb(243 244 246);
+    background-color: #f5f4f0;
     cursor: not-allowed;
+    opacity: 0.6;
   }
 
   .btn-primary {
-    background-color: rgb(37 99 235);
+    background-color: #1a1a1a;
     color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.625rem;
     font-size: 0.875rem;
     font-weight: 500;
-    transition: colors 0.15s;
-    cursor: pointer;
     border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    letter-spacing: -0.01em;
   }
-
   .btn-primary:hover {
-    background-color: rgb(29 78 216);
+    background-color: #2563eb;
+    transform: translateY(-1px);
   }
-
+  .btn-primary:active {
+    transform: translateY(0);
+  }
   .btn-primary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    transform: none;
   }
 
   .btn-secondary {
-    border: 1px solid rgb(209 213 219);
-    color: rgb(55 65 81);
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
+    border: 1.5px solid #e5e1d8;
+    color: #4a4a4a;
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.625rem;
     font-size: 0.875rem;
     font-weight: 500;
-    transition: colors 0.15s;
-    cursor: pointer;
     background-color: white;
+    cursor: pointer;
+    transition: all 0.15s ease;
   }
-
   .btn-secondary:hover {
-    background-color: rgb(249 250 251);
+    border-color: #1a1a1a;
+    color: #1a1a1a;
+    transform: translateY(-1px);
   }
-
   .btn-secondary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Fade in animation for page elements */
+  .fade-in {
+    animation: fadeIn 0.4s ease forwards;
+  }
+
+  .fade-in-up {
+    animation: fadeInUp 0.4s ease forwards;
+    opacity: 0;
+  }
+
+  /* Staggered children */
+  .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger-children > *:nth-child(2) { animation-delay: 60ms; }
+  .stagger-children > *:nth-child(3) { animation-delay: 120ms; }
+  .stagger-children > *:nth-child(4) { animation-delay: 180ms; }
+  .stagger-children > *:nth-child(5) { animation-delay: 240ms; }
+  .stagger-children > *:nth-child(6) { animation-delay: 300ms; }
+  .stagger-children > *:nth-child(7) { animation-delay: 360ms; }
+  .stagger-children > *:nth-child(8) { animation-delay: 420ms; }
+  .stagger-children > *:nth-child(9) { animation-delay: 480ms; }
+  .stagger-children > *:nth-child(10) { animation-delay: 540ms; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease forwards;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s ease forwards;
   }
 }
