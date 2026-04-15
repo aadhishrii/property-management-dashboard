@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: buena-api
+    runtime: node
+    rootDir: apps/api
+    buildCommand: npm install && npx @nestjs/cli build
+    startCommand: node dist/main
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
