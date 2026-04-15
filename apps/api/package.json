@@ -18,13 +18,19 @@
     "test:coverage": "jest --coverage"
   },
   "jest": {
-    "moduleFileExtensions": ["js", "json", "ts"],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
-    "collectCoverageFrom": ["**/*.(t|j)s"],
+    "collectCoverageFrom": [
+      "**/*.(t|j)s"
+    ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   },
@@ -40,6 +46,7 @@
     "class-validator": "^0.14.0",
     "multer": "^1.4.5-lts.1",
     "pdf-parse": "^1.1.1",
+    "pdf-parse-fork": "^1.2.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0"
   },
