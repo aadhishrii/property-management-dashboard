@@ -9,7 +9,7 @@ async function bootstrap() {
   // Allow the Next.js frontend to call this API during development.
   // In production this would be locked down to the actual frontend domain.
   app.enableCors({
-    origin: ['http://localhost:3000'],
+    origin: ['http://localhost:3000', 'https://property-management-dashboard-ms6h53v3w-aadhishriis-projects.vercel.app/'],
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
     credentials: true,
   })
