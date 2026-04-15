@@ -14,28 +14,34 @@
   "jest": {
     "testEnvironment": "jsdom",
     "transform": {
-      "^.+\\.(ts|tsx)$": ["ts-jest", {
-        "tsconfig": {
-          "jsx": "react-jsx"
+      "^.+\\.(ts|tsx)$": [
+        "ts-jest",
+        {
+          "tsconfig": {
+            "jsx": "react-jsx"
+          }
         }
-      }]
+      ]
     },
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1"
     },
     "testMatch": [
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/*.spec.ts"
-  ]
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/*.spec.ts"
+    ]
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.2.2",
     "@tanstack/react-query": "^5.0.0",
     "axios": "^1.6.0",
     "next": "15.2.3",
+    "postcss": "^8.4.31",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-hot-toast": "^2.4.1"
+    "react-hot-toast": "^2.4.1",
+    "tailwindcss": "^4.2.2"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.0.0",
