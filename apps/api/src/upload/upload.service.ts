@@ -13,16 +13,17 @@ export interface ExtractedProperty {
     postalCode: string
     city: string
   }>
-  units: Array<{
-    unitNumber: string
-    unitType: 'APARTMENT' | 'OFFICE' | 'GARDEN' | 'PARKING'
-    floor: number
-    entrance: string | null
-    sizeSqm: number
-    coOwnershipShare: number
-    constructionYear: number | null
-    rooms: number | null
-  }>
+units: Array<{
+  unitNumber:        string
+  unitType:          'APARTMENT' | 'OFFICE' | 'GARDEN' | 'PARKING'
+  buildingReference: string | null
+  floor:             number
+  entrance:          string | null
+  sizeSqm:           number
+  coOwnershipShare:  number
+  constructionYear:  number | null
+  rooms:             number | null
+}>
 }
 
 @Injectable()
