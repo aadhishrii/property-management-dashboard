@@ -13,17 +13,17 @@ export interface ExtractedProperty {
     postalCode: string
     city: string
   }>
-units: Array<{
-  unitNumber:        string
-  unitType:          'APARTMENT' | 'OFFICE' | 'GARDEN' | 'PARKING'
-  buildingReference: string | null
-  floor:             number
-  entrance:          string | null
-  sizeSqm:           number
-  coOwnershipShare:  number
-  constructionYear:  number | null
-  rooms:             number | null
-}>
+  units: Array<{
+    unitNumber:        string
+    unitType:          'APARTMENT' | 'OFFICE' | 'GARDEN' | 'PARKING'
+    buildingReference: string | null
+    floor:             number
+    entrance:          string | null
+    sizeSqm:           number
+    coOwnershipShare:  number
+    constructionYear:  number | null
+    rooms:             number | null
+  }>
 }
 
 @Injectable()
@@ -75,11 +75,11 @@ Required JSON shape:
     {
       "unitNumber": string,
       "unitType": "APARTMENT" | "OFFICE" | "GARDEN" | "PARKING",
-      "buildingReference": "string | null  // e.g. 'Haus A', 'Gebäude 1', 'Building A' — the building name as stated in the document",
+      "buildingReference": string or null,
       "floor": number,
       "entrance": string or null,
       "sizeSqm": number,
-      "coOwnershipShare": number (express as a fraction between 0 and 1, e.g. 43.2/1000 = 0.0432),
+      "coOwnershipShare": number,
       "constructionYear": number or null,
       "rooms": number or null
     }
@@ -89,6 +89,9 @@ Required JSON shape:
 Rules:
 - If a field is not clearly stated in the document, use null — do not guess
 - unitType: classify Wohnung/Apartment as APARTMENT, Büro/Office as OFFICE, Garten/Garden as GARDEN, Stellplatz/Garage/Parking as PARKING
+- buildingReference: ONLY the building label e.g. "Haus A", "Haus B", "Gebäude 1". Do NOT put entrance information like "Eingang A" here — that goes in the entrance field. Do NOT put street addresses here.
+- entrance: extract ONLY the letter or number e.g. "A", "B", "1". Do NOT include the word "Eingang" — just the letter or number alone.
+- coOwnershipShare: express as a fraction between 0 and 1, e.g. 43.2/1000 = 0.0432
 - Return an empty array for buildings or units if none are found
 - Return only the JSON object, nothing else
 

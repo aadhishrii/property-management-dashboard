@@ -66,12 +66,12 @@ const initialState: WizardState = {
 type WizardAction =
   | { type: 'NEXT_STEP' }
   | { type: 'PREV_STEP' }
-  | { type: 'SET_PROPERTY_ID';      propertyId: string }
-  | { type: 'SET_SAVED_BUILDINGS';  buildings: Building[] }
-  | { type: 'SET_GENERAL_INFO';     data: GeneralInfoData }
-  | { type: 'SET_BUILDINGS';        data: BuildingFormData[] }
-  | { type: 'SET_UNITS';            data: UnitFormData[] }
-  | { type: 'PREFILL_FROM_AI';      data: AiExtraction }
+  | { type: 'SET_PROPERTY_ID';       propertyId: string }
+  | { type: 'SET_SAVED_BUILDINGS';   buildings: Building[] }
+  | { type: 'SET_GENERAL_INFO';      data: GeneralInfoData }
+  | { type: 'SET_BUILDINGS';         data: BuildingFormData[] }
+  | { type: 'SET_UNITS';             data: UnitFormData[] }
+  | { type: 'PREFILL_FROM_AI';       data: AiExtraction }
   | { type: 'AUTO_ASSIGN_BUILDINGS'; savedBuildings: Building[] }
   | { type: 'RESET' }
 
@@ -151,32 +151,59 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
         // Already has a building assigned — don't overwrite
         if (unit.buildingId) return unit
 
-        // No reference to match against — leave blank for manual entry
         if (!unit.buildingReference) {
-          // If there's only one building, assign everything to it
-          if (savedBuildings.length === 1) {
-            return { ...unit, buildingId: savedBuildings[0].id }
-          }
-          return unit
+          // No reference — assign to only building if there's just one
+          return savedBuildings.length === 1
+            ? { ...unit, buildingId: savedBuildings[0].id }
+            : unit
         }
 
         const ref = unit.buildingReference.toLowerCase().trim()
 
-        // Match the building reference against saved building addresses.
-        // The Teilungserklärung typically references buildings by street name
-        // or a label like "Haus A". We check if the reference contains
-        // the street name or house number of any saved building.
-        const match = savedBuildings.find(b => {
-          const street      = b.street.toLowerCase()
-          const houseNumber = b.houseNumber.toLowerCase()
-          return ref.includes(street) || ref.includes(houseNumber)
-        })
+        // Strategy 1: match by street name or house number in the reference
+        const streetMatch = savedBuildings.find(b =>
+          ref.includes(b.street.toLowerCase()) ||
+          ref.includes(b.houseNumber.toLowerCase())
+        )
+        if (streetMatch) return { ...unit, buildingId: streetMatch.id }
 
-        // Fallback: single building — assign all unmatched units to it
-        const fallback = savedBuildings.length === 1 ? savedBuildings[0] : null
+        // Strategy 2: match Haus A/B/C by extracting the letter → index
+        // "Haus A" → letter A → index 0 → first building
+        // "Haus B" → letter B → index 1 → second building
+        const hausLetterMatch = ref.match(/haus\s+([a-z])/i)
+        if (hausLetterMatch) {
+          const letter = hausLetterMatch[1].toUpperCase()
+          const idx = letter.charCodeAt(0) - 'A'.charCodeAt(0)
+          if (savedBuildings[idx]) return { ...unit, buildingId: savedBuildings[idx].id }
+        }
 
-        const assigned = match || fallback
-        return assigned ? { ...unit, buildingId: assigned.id } : unit
+        // Strategy 3: match Gebäude A/B/1/2 etc
+        const gebäudeMatch = ref.match(/geb[äa]ude\s+([a-z0-9]+)/i)
+        if (gebäudeMatch) {
+          const label = gebäudeMatch[1].toUpperCase()
+          const idx = isNaN(Number(label))
+            ? label.charCodeAt(0) - 'A'.charCodeAt(0)
+            : Number(label) - 1
+          if (savedBuildings[idx]) return { ...unit, buildingId: savedBuildings[idx].id }
+        }
+
+        // Strategy 4: Tiefgarage / Außenanlage — assign to first building by default.
+        // These are shared facilities that don't belong to a specific building
+        // in the document, so we default to the first building administratively.
+        if (
+          ref.includes('tiefgarage') ||
+          ref.includes('garage') ||
+          ref.includes('außenanlage')
+        ) {
+          return { ...unit, buildingId: savedBuildings[0].id }
+        }
+
+        // Strategy 5: single building fallback
+        if (savedBuildings.length === 1) {
+          return { ...unit, buildingId: savedBuildings[0].id }
+        }
+
+        return unit
       })
 
       return { ...state, units: updatedUnits }
