@@ -4,7 +4,8 @@ A full-stack property creation and management tool built as a case study for Bue
 
 **Live demo:** https://property-management-dashboard-web.vercel.app  
 **Backend API:** https://property-management-dashboard-arel.onrender.com/api/v1  
-**Video walkthrough:** [Link to be added]
+**Video walkthrough:** https://www.loom.com/share/609f060b016e452ca0acb51b13e71785  
+**Detailed reasoning for decisions:** [`DECISIONS.md`](./DECISIONS.md)
 
 > **Note:** Backend is on Render's free tier and may take 30–50 seconds to respond on first load after inactivity. If the dashboard appears empty, wait a moment and refresh.
 
