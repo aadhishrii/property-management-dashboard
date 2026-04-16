@@ -74,6 +74,7 @@ Required JSON shape:
     {
       "unitNumber": string,
       "unitType": "APARTMENT" | "OFFICE" | "GARDEN" | "PARKING",
+      "buildingReference": "string | null  // e.g. 'Haus A', 'Gebäude 1', 'Building A' — the building name as stated in the document",
       "floor": number,
       "entrance": string or null,
       "sizeSqm": number,

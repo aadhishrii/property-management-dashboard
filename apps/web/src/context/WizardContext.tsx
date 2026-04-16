@@ -26,6 +26,7 @@ export interface UnitFormData {
   unitNumber:       string
   unitType:         UnitType
   buildingId:       string
+  buildingReference?: string | null   // e.g. "Haus A" — from AI extraction, used for auto-assign
   floor:            number | ''
   entrance:         string
   sizeSqm:          number | ''
@@ -65,12 +66,13 @@ const initialState: WizardState = {
 type WizardAction =
   | { type: 'NEXT_STEP' }
   | { type: 'PREV_STEP' }
-  | { type: 'SET_PROPERTY_ID';     propertyId: string }
-  | { type: 'SET_SAVED_BUILDINGS'; buildings: Building[] }
-  | { type: 'SET_GENERAL_INFO';    data: GeneralInfoData }
-  | { type: 'SET_BUILDINGS';       data: BuildingFormData[] }
-  | { type: 'SET_UNITS';           data: UnitFormData[] }
-  | { type: 'PREFILL_FROM_AI';     data: AiExtraction }
+  | { type: 'SET_PROPERTY_ID';      propertyId: string }
+  | { type: 'SET_SAVED_BUILDINGS';  buildings: Building[] }
+  | { type: 'SET_GENERAL_INFO';     data: GeneralInfoData }
+  | { type: 'SET_BUILDINGS';        data: BuildingFormData[] }
+  | { type: 'SET_UNITS';            data: UnitFormData[] }
+  | { type: 'PREFILL_FROM_AI';      data: AiExtraction }
+  | { type: 'AUTO_ASSIGN_BUILDINGS'; savedBuildings: Building[] }
   | { type: 'RESET' }
 
 // ─────────────────────────────────────────────────────────
@@ -101,43 +103,84 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
       return { ...state, units: action.data }
 
     case 'PREFILL_FROM_AI': {
-  const { data } = action
+      const { data } = action
 
-  const buildings: BuildingFormData[] =
-    data.buildings.length > 0
-      ? data.buildings
-      : state.buildings
+      const buildings: BuildingFormData[] =
+        data.buildings.length > 0
+          ? data.buildings
+          : state.buildings
 
-  const units: UnitFormData[] =
-    data.units.length > 0
-      ? data.units.map((u, i) => ({
-          id:               `ai-${i}`,
-          unitNumber:       u.unitNumber ?? '',
-          unitType:         u.unitType ?? 'APARTMENT',
-          buildingId:       '',
-          floor:            u.floor ?? '',
-          entrance:         u.entrance ?? '',
-          sizeSqm:          u.sizeSqm ?? '',
-          // AI returns fractions (0.11) but the table shows per-mille (110.0)
-          // so we multiply by 1000 here to match what the user expects to see
-          coOwnershipShare: u.coOwnershipShare != null
-            ? Math.round(u.coOwnershipShare * 1000 * 10) / 10
-            : '',
-          constructionYear: u.constructionYear ?? '',
-          rooms:            u.rooms ?? '',
-        }))
-      : state.units
+      const units: UnitFormData[] =
+        data.units.length > 0
+          ? data.units.map((u, i) => ({
+              id:               `ai-${i}`,
+              unitNumber:       u.unitNumber ?? '',
+              unitType:         u.unitType ?? 'APARTMENT',
+              buildingId:       '',
+              // Store the raw building reference from the document (e.g. "Haus A")
+              // so AUTO_ASSIGN_BUILDINGS can match it to a real building UUID after step 2
+              buildingReference: u.buildingReference ?? null,
+              floor:            u.floor ?? '',
+              entrance:         u.entrance ?? '',
+              sizeSqm:          u.sizeSqm ?? '',
+              // AI returns fractions (0.11) but the table shows per-mille (110.0)
+              // so we multiply by 1000 here to match what the user expects to see
+              coOwnershipShare: u.coOwnershipShare != null
+                ? Math.round(u.coOwnershipShare * 1000 * 10) / 10
+                : '',
+              constructionYear: u.constructionYear ?? '',
+              rooms:            u.rooms ?? '',
+            }))
+          : state.units
 
-  return {
-    ...state,
-    buildings,
-    units,
-    aiPrefilled: data.buildings.length > 0 || data.units.length > 0,
-    generalInfo: state.generalInfo && data.propertyName
-      ? { ...state.generalInfo, name: data.propertyName }
-      : state.generalInfo,
-  }
-}
+      return {
+        ...state,
+        buildings,
+        units,
+        aiPrefilled: data.buildings.length > 0 || data.units.length > 0,
+        generalInfo: state.generalInfo && data.propertyName
+          ? { ...state.generalInfo, name: data.propertyName }
+          : state.generalInfo,
+      }
+    }
+
+    case 'AUTO_ASSIGN_BUILDINGS': {
+      const { savedBuildings } = action
+
+      const updatedUnits = state.units.map(unit => {
+        // Already has a building assigned — don't overwrite
+        if (unit.buildingId) return unit
+
+        // No reference to match against — leave blank for manual entry
+        if (!unit.buildingReference) {
+          // If there's only one building, assign everything to it
+          if (savedBuildings.length === 1) {
+            return { ...unit, buildingId: savedBuildings[0].id }
+          }
+          return unit
+        }
+
+        const ref = unit.buildingReference.toLowerCase().trim()
+
+        // Match the building reference against saved building addresses.
+        // The Teilungserklärung typically references buildings by street name
+        // or a label like "Haus A". We check if the reference contains
+        // the street name or house number of any saved building.
+        const match = savedBuildings.find(b => {
+          const street      = b.street.toLowerCase()
+          const houseNumber = b.houseNumber.toLowerCase()
+          return ref.includes(street) || ref.includes(houseNumber)
+        })
+
+        // Fallback: single building — assign all unmatched units to it
+        const fallback = savedBuildings.length === 1 ? savedBuildings[0] : null
+
+        const assigned = match || fallback
+        return assigned ? { ...unit, buildingId: assigned.id } : unit
+      })
+
+      return { ...state, units: updatedUnits }
+    }
 
     case 'RESET':
       return initialState
@@ -183,6 +226,7 @@ export function makeEmptyUnit(): UnitFormData {
     unitNumber:       '',
     unitType:         'APARTMENT',
     buildingId:       '',
+    buildingReference: null,
     floor:            '',
     entrance:         '',
     sizeSqm:          '',

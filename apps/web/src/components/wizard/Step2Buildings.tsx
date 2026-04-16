@@ -58,6 +58,7 @@ export function Step2Buildings() {
 
       dispatch({ type: 'SET_BUILDINGS',       data: buildings })
       dispatch({ type: 'SET_SAVED_BUILDINGS', buildings: saved })
+      dispatch({ type: 'AUTO_ASSIGN_BUILDINGS', savedBuildings: saved }) 
       dispatch({ type: 'NEXT_STEP' })
     } catch (err: any) {
       const msg = err?.response?.data?.message

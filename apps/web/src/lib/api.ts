@@ -55,7 +55,17 @@ export interface AiExtraction {
     postalCode:  string
     city:        string
   }>
-  units: Array<Omit<Unit, 'buildingId'> & { buildingId?: string }>
+  units: Array<{
+    unitNumber:        string | null
+    unitType:          UnitType | null
+    buildingReference: string | null
+    floor:             number | null
+    entrance:          string | null
+    sizeSqm:           number | null
+    coOwnershipShare:  number | null
+    constructionYear:  number | null
+    rooms:             number | null
+  }>
 }
 
 export async function fetchStaff(): Promise<{

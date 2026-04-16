@@ -249,6 +249,20 @@ describe('wizardReducer', () => {
 
   describe('PREFILL_FROM_AI', () => {
 
+    // helper to create a minimal AI unit
+    const makeAiUnit = (overrides = {}) => ({
+      unitNumber:        '01',
+      unitType:          'APARTMENT' as const,
+      buildingReference: null,
+      floor:             0,
+      entrance:          'A',
+      sizeSqm:           95,
+      coOwnershipShare:  0.11,
+      constructionYear:  2023,
+      rooms:             3,
+      ...overrides,
+    })
+
     // Buildings
     it('populates buildings from extraction', () => {
       const result = wizardReducer(baseState, {
@@ -298,68 +312,37 @@ describe('wizardReducer', () => {
     it('populates units from extraction', () => {
       const result = wizardReducer(baseState, {
         type: 'PREFILL_FROM_AI',
-        data: {
-          propertyName: null,
-          buildings:    [],
-          units: [{
-            unitNumber:       '01',
-            unitType:         'APARTMENT' as const,
-            floor:            0,
-            entrance:         'A',
-            sizeSqm:          95,
-            coOwnershipShare: 0.11,
-            constructionYear: 2023,
-            rooms:            3,
-          }],
-        },
+        data: { propertyName: null, buildings: [], units: [makeAiUnit()] },
       })
       expect(result.units).toHaveLength(1)
       expect(result.units[0].unitNumber).toBe('01')
     })
 
     it('sets buildingId to empty string for all pre-filled units', () => {
-      // buildingId cannot be pre-filled — the AI knows "Haus A" but not
-      // the database UUID. The user assigns buildings in step 3.
       const result = wizardReducer(baseState, {
         type: 'PREFILL_FROM_AI',
-        data: {
-          propertyName: null,
-          buildings:    [],
-          units: [{
-            unitNumber:       '01',
-            unitType:         'APARTMENT' as const,
-            floor:            0,
-            entrance:         'A',
-            sizeSqm:          95,
-            coOwnershipShare: 0.11,
-            constructionYear: 2023,
-            rooms:            3,
-          }],
-        },
+        data: { propertyName: null, buildings: [], units: [makeAiUnit()] },
       })
       expect(result.units[0].buildingId).toBe('')
     })
 
-    // coOwnershipShare conversion — the most important pre-fill test
-    it('converts coOwnershipShare from fraction to per-mille for display', () => {
-      // AI returns 0.11 (fraction) but table shows 110.0 (per-mille)
-      // This is the fix for the "400.0 / 1000" display bug
+    it('stores buildingReference from AI extraction', () => {
       const result = wizardReducer(baseState, {
         type: 'PREFILL_FROM_AI',
         data: {
           propertyName: null,
           buildings:    [],
-          units: [{
-            unitNumber:       '01',
-            unitType:         'APARTMENT' as const,
-            floor:            0,
-            entrance:         'A',
-            sizeSqm:          95,
-            coOwnershipShare: 0.11,
-            constructionYear: 2023,
-            rooms:            3,
-          }],
+          units: [makeAiUnit({ buildingReference: 'Am Fiktivpark 12' })],
         },
+      })
+      expect(result.units[0].buildingReference).toBe('Am Fiktivpark 12')
+    })
+
+    // coOwnershipShare conversion — the most important pre-fill test
+    it('converts coOwnershipShare from fraction to per-mille for display', () => {
+      const result = wizardReducer(baseState, {
+        type: 'PREFILL_FROM_AI',
+        data: { propertyName: null, buildings: [], units: [makeAiUnit({ coOwnershipShare: 0.11 })] },
       })
       expect(result.units[0].coOwnershipShare).toBe(110)
     })
@@ -371,20 +354,20 @@ describe('wizardReducer', () => {
           propertyName: 'Parkview Residences Berlin',
           buildings:    [],
           units: [
-            { unitNumber: '01', unitType: 'APARTMENT' as const, floor: 0,  entrance: 'A', sizeSqm: 95,   coOwnershipShare: 0.110, constructionYear: 2023, rooms: 3 },
-            { unitNumber: '02', unitType: 'APARTMENT' as const, floor: 0,  entrance: 'A', sizeSqm: 92.5, coOwnershipShare: 0.108, constructionYear: 2023, rooms: 3 },
-            { unitNumber: '03', unitType: 'APARTMENT' as const, floor: 1,  entrance: 'A', sizeSqm: 105,  coOwnershipShare: 0.120, constructionYear: 2023, rooms: 4 },
-            { unitNumber: '04', unitType: 'APARTMENT' as const, floor: 2,  entrance: 'A', sizeSqm: 78,   coOwnershipShare: 0.090, constructionYear: 2023, rooms: 2 },
-            { unitNumber: '05', unitType: 'APARTMENT' as const, floor: 4,  entrance: 'A', sizeSqm: 145,  coOwnershipShare: 0.160, constructionYear: 2023, rooms: 4 },
-            { unitNumber: '06', unitType: 'OFFICE' as const,    floor: 0,  entrance: 'B', sizeSqm: 110,  coOwnershipShare: 0.125, constructionYear: 2023, rooms: null },
-            { unitNumber: '07', unitType: 'APARTMENT' as const, floor: 1,  entrance: 'B', sizeSqm: 65,   coOwnershipShare: 0.075, constructionYear: 2023, rooms: 2 },
-            { unitNumber: '08', unitType: 'APARTMENT' as const, floor: 2,  entrance: 'B', sizeSqm: 88,   coOwnershipShare: 0.102, constructionYear: 2023, rooms: 3 },
-            { unitNumber: '09', unitType: 'PARKING' as const,   floor: -1, entrance: null, sizeSqm: 12.5, coOwnershipShare: 0.001, constructionYear: 2023, rooms: null },
-            { unitNumber: '10', unitType: 'PARKING' as const,   floor: -1, entrance: null, sizeSqm: 12.5, coOwnershipShare: 0.001, constructionYear: 2023, rooms: null },
-            { unitNumber: '11', unitType: 'PARKING' as const,   floor: -1, entrance: null, sizeSqm: 12.5, coOwnershipShare: 0.001, constructionYear: 2023, rooms: null },
-            { unitNumber: '12', unitType: 'PARKING' as const,   floor: -1, entrance: null, sizeSqm: 12.5, coOwnershipShare: 0.001, constructionYear: 2023, rooms: null },
-            { unitNumber: '13', unitType: 'PARKING' as const,   floor: -1, entrance: null, sizeSqm: 12.5, coOwnershipShare: 0.001, constructionYear: 2023, rooms: null },
-            { unitNumber: '14', unitType: 'GARDEN' as const,    floor: 0,  entrance: null, sizeSqm: 40,   coOwnershipShare: 0.005, constructionYear: 2023, rooms: null },
+            makeAiUnit({ unitNumber: '01', unitType: 'APARTMENT', buildingReference: 'Am Fiktivpark 12', floor: 0,  entrance: 'A', sizeSqm: 95,   coOwnershipShare: 0.110, rooms: 3 }),
+            makeAiUnit({ unitNumber: '02', unitType: 'APARTMENT', buildingReference: 'Am Fiktivpark 12', floor: 0,  entrance: 'A', sizeSqm: 92.5, coOwnershipShare: 0.108, rooms: 3 }),
+            makeAiUnit({ unitNumber: '03', unitType: 'APARTMENT', buildingReference: 'Am Fiktivpark 12', floor: 1,  entrance: 'A', sizeSqm: 105,  coOwnershipShare: 0.120, rooms: 4 }),
+            makeAiUnit({ unitNumber: '04', unitType: 'APARTMENT', buildingReference: 'Am Fiktivpark 12', floor: 2,  entrance: 'A', sizeSqm: 78,   coOwnershipShare: 0.090, rooms: 2 }),
+            makeAiUnit({ unitNumber: '05', unitType: 'APARTMENT', buildingReference: 'Am Fiktivpark 12', floor: 4,  entrance: 'A', sizeSqm: 145,  coOwnershipShare: 0.160, rooms: 4 }),
+            makeAiUnit({ unitNumber: '06', unitType: 'OFFICE',    buildingReference: 'Urbanstraße 88',   floor: 0,  entrance: 'B', sizeSqm: 110,  coOwnershipShare: 0.125, rooms: null }),
+            makeAiUnit({ unitNumber: '07', unitType: 'APARTMENT', buildingReference: 'Urbanstraße 88',   floor: 1,  entrance: 'B', sizeSqm: 65,   coOwnershipShare: 0.075, rooms: 2 }),
+            makeAiUnit({ unitNumber: '08', unitType: 'APARTMENT', buildingReference: 'Urbanstraße 88',   floor: 2,  entrance: 'B', sizeSqm: 88,   coOwnershipShare: 0.102, rooms: 3 }),
+            makeAiUnit({ unitNumber: '09', unitType: 'PARKING',   buildingReference: null,               floor: -1, entrance: null, sizeSqm: 12.5, coOwnershipShare: 0.001, rooms: null }),
+            makeAiUnit({ unitNumber: '10', unitType: 'PARKING',   buildingReference: null,               floor: -1, entrance: null, sizeSqm: 12.5, coOwnershipShare: 0.001, rooms: null }),
+            makeAiUnit({ unitNumber: '11', unitType: 'PARKING',   buildingReference: null,               floor: -1, entrance: null, sizeSqm: 12.5, coOwnershipShare: 0.001, rooms: null }),
+            makeAiUnit({ unitNumber: '12', unitType: 'PARKING',   buildingReference: null,               floor: -1, entrance: null, sizeSqm: 12.5, coOwnershipShare: 0.001, rooms: null }),
+            makeAiUnit({ unitNumber: '13', unitType: 'PARKING',   buildingReference: null,               floor: -1, entrance: null, sizeSqm: 12.5, coOwnershipShare: 0.001, rooms: null }),
+            makeAiUnit({ unitNumber: '14', unitType: 'GARDEN',    buildingReference: null,               floor: 0,  entrance: null, sizeSqm: 40,   coOwnershipShare: 0.005, rooms: null }),
           ],
         },
       })
@@ -396,22 +379,11 @@ describe('wizardReducer', () => {
 
     // null/undefined field handling
     it('handles null entrance gracefully', () => {
-      // Parking and garden units have no entrance
       const result = wizardReducer(baseState, {
         type: 'PREFILL_FROM_AI',
         data: {
-          propertyName: null,
-          buildings:    [],
-          units: [{
-            unitNumber:       'TG-01',
-            unitType:         'PARKING' as const,
-            floor:            -1,
-            entrance:         null,
-            sizeSqm:          12.5,
-            coOwnershipShare: 0.001,
-            constructionYear: 2023,
-            rooms:            null,
-          }],
+          propertyName: null, buildings: [],
+          units: [makeAiUnit({ unitType: 'PARKING', floor: -1, entrance: null, sizeSqm: 12.5, coOwnershipShare: 0.001, rooms: null })],
         },
       })
       expect(result.units[0].entrance).toBe('')
@@ -421,18 +393,8 @@ describe('wizardReducer', () => {
       const result = wizardReducer(baseState, {
         type: 'PREFILL_FROM_AI',
         data: {
-          propertyName: null,
-          buildings:    [],
-          units: [{
-            unitNumber:       '06',
-            unitType:         'OFFICE' as const,
-            floor:            0,
-            entrance:         'B',
-            sizeSqm:          110,
-            coOwnershipShare: 0.125,
-            constructionYear: 2023,
-            rooms:            null,
-          }],
+          propertyName: null, buildings: [],
+          units: [makeAiUnit({ unitType: 'OFFICE', rooms: null })],
         },
       })
       expect(result.units[0].rooms).toBe('')
@@ -442,21 +404,22 @@ describe('wizardReducer', () => {
       const result = wizardReducer(baseState, {
         type: 'PREFILL_FROM_AI',
         data: {
-          propertyName: null,
-          buildings:    [],
-          units: [{
-            unitNumber:       'P-01',
-            unitType:         'PARKING' as const,
-            floor:            -1,
-            entrance:         null,
-            sizeSqm:          12.5,
-            coOwnershipShare: null as any,
-            constructionYear: 2023,
-            rooms:            null,
-          }],
+          propertyName: null, buildings: [],
+          units: [makeAiUnit({ coOwnershipShare: null as any })],
         },
       })
       expect(result.units[0].coOwnershipShare).toBe('')
+    })
+
+    it('handles null buildingReference gracefully', () => {
+      const result = wizardReducer(baseState, {
+        type: 'PREFILL_FROM_AI',
+        data: {
+          propertyName: null, buildings: [],
+          units: [makeAiUnit({ buildingReference: null })],
+        },
+      })
+      expect(result.units[0].buildingReference).toBeNull()
     })
 
     // aiPrefilled flag
@@ -475,15 +438,7 @@ describe('wizardReducer', () => {
     it('sets aiPrefilled to true when units extracted', () => {
       const result = wizardReducer(baseState, {
         type: 'PREFILL_FROM_AI',
-        data: {
-          propertyName: null,
-          buildings:    [],
-          units: [{
-            unitNumber: '01', unitType: 'APARTMENT' as const, floor: 0,
-            entrance: 'A', sizeSqm: 95, coOwnershipShare: 0.11,
-            constructionYear: 2023, rooms: 3,
-          }],
-        },
+        data: { propertyName: null, buildings: [], units: [makeAiUnit()] },
       })
       expect(result.aiPrefilled).toBe(true)
     })
@@ -509,10 +464,7 @@ describe('wizardReducer', () => {
       expect(result.generalInfo?.name).toBe('Parkview Residences Berlin')
     })
 
-    it('does not update generalInfo when it is null (step 1 not yet submitted)', () => {
-      // generalInfo is null before the user fills step 1
-      // Pre-filling a name here would be confusing — it only applies
-      // once generalInfo exists (i.e. the form has been interacted with)
+    it('does not update generalInfo when it is null', () => {
       const result = wizardReducer(baseState, {
         type: 'PREFILL_FROM_AI',
         data: { propertyName: 'Parkview', buildings: [], units: [] },
@@ -530,6 +482,88 @@ describe('wizardReducer', () => {
         data: { propertyName: null, buildings: [], units: [] },
       })
       expect(result.generalInfo?.name).toBe('Existing Name')
+    })
+  })
+
+  // ── AUTO_ASSIGN_BUILDINGS ───────────────────────────────
+
+  describe('AUTO_ASSIGN_BUILDINGS', () => {
+
+    const savedBuildings = [
+      { id: 'b-1', propertyId: 'p-1', street: 'Am Fiktivpark', houseNumber: '12', postalCode: '10557', city: 'Berlin' },
+      { id: 'b-2', propertyId: 'p-1', street: 'Urbanstraße',   houseNumber: '88', postalCode: '10557', city: 'Berlin' },
+    ]
+
+    it('assigns buildingId when buildingReference matches street', () => {
+      const state = {
+        ...baseState,
+        units: [{
+          ...makeEmptyUnit(),
+          buildingReference: 'Am Fiktivpark 12',
+        }],
+      }
+      const result = wizardReducer(state, { type: 'AUTO_ASSIGN_BUILDINGS', savedBuildings })
+      expect(result.units[0].buildingId).toBe('b-1')
+    })
+
+    it('assigns second building when reference matches its street', () => {
+      const state = {
+        ...baseState,
+        units: [{
+          ...makeEmptyUnit(),
+          buildingReference: 'Urbanstraße 88',
+        }],
+      }
+      const result = wizardReducer(state, { type: 'AUTO_ASSIGN_BUILDINGS', savedBuildings })
+      expect(result.units[0].buildingId).toBe('b-2')
+    })
+
+    it('does not overwrite an already assigned buildingId', () => {
+      const state = {
+        ...baseState,
+        units: [{
+          ...makeEmptyUnit(),
+          buildingId:        'b-2',
+          buildingReference: 'Am Fiktivpark 12',
+        }],
+      }
+      const result = wizardReducer(state, { type: 'AUTO_ASSIGN_BUILDINGS', savedBuildings })
+      expect(result.units[0].buildingId).toBe('b-2')
+    })
+
+    it('assigns all units to the single building when there is only one', () => {
+      const singleBuilding = [
+        { id: 'b-1', propertyId: 'p-1', street: 'Musterstraße', houseNumber: '1', postalCode: '10115', city: 'Berlin' },
+      ]
+      const state = {
+        ...baseState,
+        units: [
+          { ...makeEmptyUnit(), buildingReference: null },
+          { ...makeEmptyUnit(), buildingReference: null },
+        ],
+      }
+      const result = wizardReducer(state, { type: 'AUTO_ASSIGN_BUILDINGS', savedBuildings: singleBuilding })
+      expect(result.units[0].buildingId).toBe('b-1')
+      expect(result.units[1].buildingId).toBe('b-1')
+    })
+
+    it('leaves buildingId empty when no match and multiple buildings', () => {
+      const state = {
+        ...baseState,
+        units: [{
+          ...makeEmptyUnit(),
+          buildingReference: null,
+        }],
+      }
+      const result = wizardReducer(state, { type: 'AUTO_ASSIGN_BUILDINGS', savedBuildings })
+      expect(result.units[0].buildingId).toBe('')
+    })
+
+    it('does not change other unit fields', () => {
+      const unit = { ...makeEmptyUnit(), unitNumber: 'W-01', buildingReference: 'Am Fiktivpark 12' }
+      const state = { ...baseState, units: [unit] }
+      const result = wizardReducer(state, { type: 'AUTO_ASSIGN_BUILDINGS', savedBuildings })
+      expect(result.units[0].unitNumber).toBe('W-01')
     })
   })
 
